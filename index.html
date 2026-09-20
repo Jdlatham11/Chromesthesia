@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,7 +12,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        /* 1. The Fading Gradient Background */
         body {
             height: 100vh;
             background: linear-gradient(to bottom, #e0f2fe 0%, #ffffff 100%);
@@ -27,7 +25,6 @@
             to { opacity: 1; }
         }
 
-        /* 2. The Dropping Title */
         .title-container {
             grid-row: 2;
             display: flex;
@@ -52,13 +49,12 @@
             }
         }
 
-        /* 3. The Square Button in the Lower Third */
         .nav-container {
             grid-row: 3;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding-bottom: 10vh; /* Pushes it slightly up from the very bottom */
+            padding-bottom: 10vh;
         }
 
         .project-btn {
@@ -78,7 +74,6 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
             transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
             opacity: 0;
-            /* Fades in slightly after the title */
             animation: fadeBackground 1s ease-in-out 1.6s forwards; 
         }
 
@@ -90,7 +85,6 @@
     </style>
 </head>
 <body>
-
     <div class="title-container">
         <h1>JOEY LABS</h1>
     </div>
@@ -98,6 +92,5 @@
     <div class="nav-container">
         <a href="chromesthesia.html" class="project-btn">Chromesthesia</a>
     </div>
-
 </body>
 </html>
