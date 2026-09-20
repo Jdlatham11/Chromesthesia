@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chromesthesia</title>
+    <style>
+        /* The Gloomy World */
+        body {
+            margin: 0;
+            height: 100vh;
+            background: radial-gradient(circle at center, #3a3a3a 0%, #121212 100%);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 50px;
+            font-family: sans-serif;
+            overflow: hidden; /* Keeps color bursts from causing scrollbars */
+        }
+
+        /* The Keyboard Layout */
+        .keyboard-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+
+        /* The Drum Pads */
+        .pad {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            background: transparent;
+            transition: all 0.1s;
+        }
+
+        /* Spacing for the top row to stagger it properly */
+        .pad.spacer {
+            visibility: hidden;
+            width: 35px; /* Half the size of a pad to create the piano stagger */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="keyboard-container">
+        <!-- Top Row (Black Keys) -->
+        <div class="row">
+            <div class="pad">W</div>
+            <div class="pad">E</div>
+            <div class="pad spacer"></div>
+            <div class="pad">Y</div>
+            <div class="pad">U</div>
+            <div class="pad">I</div>
+        </div>
+        
+        <!-- Bottom Row (White Keys) -->
+        <div class="row">
+            <div class="pad">A</div>
+            <div class="pad">S</div>
+            <div class="pad">D</div>
+            <div class="pad">G</div>
+            <div class="pad">H</div>
+            <div class="pad">J</div>
+            <div class="pad">K</div>
+        </div>
+    </div>
+
+</body>
+</html>
