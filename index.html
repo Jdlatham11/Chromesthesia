@@ -3,81 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chromesthesia</title>
+    <title>Chromesthesia Cosmos</title>
     <style>
-        /* The Gloomy World */
+        * { box-sizing: border-box; user-select: none; }
+        
         body {
-            margin: 0;
-            height: 100vh;
-            background: radial-gradient(circle at center, #3a3a3a 0%, #121212 100%);
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 50px;
-            font-family: sans-serif;
-            overflow: hidden; /* Keeps color bursts from causing scrollbars */
+            margin: 0; height: 100vh;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            padding-bottom: 50px; font-family: sans-serif;
+            overflow: hidden; position: relative;
         }
 
-        /* The Keyboard Layout */
-        .keyboard-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
+        #visualizer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        
+        .ui-container { display: flex; flex-direction: column; gap: 20px; align-items: center; z-index: 10; width: 100%; }
+
+        .volume-container {
+            width: 200px; height: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px; position: relative;
+            transition: height 0.2s ease, background 0.2s ease;
+        }
+        .volume-container:hover { height: 14px; background: rgba(255, 255, 255, 0.25); }
+        .volume-bar {
+            height: 100%; width: 50%;
+            background: #ffffff; border-radius: 4px;
+            pointer-events: none; transition: width 0.1s linear;
+        }
+        .volume-container input {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; cursor: pointer; margin: 0;
         }
 
-        .row {
-            display: flex;
-            gap: 15px;
-        }
-
-        /* The Drum Pads */
+        .keyboard { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+        .row { display: flex; gap: 16px; }
+        
         .pad {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            color: rgba(255, 255, 255, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            font-weight: bold;
-            background: transparent;
-            transition: all 0.1s;
+            width: 68px; height: 68px; border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.15); color: rgba(255, 255, 255, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 19px; font-weight: 600; background: rgba(18, 18, 18, 0.6);
+            backdrop-filter: blur(4px); transition: transform 0.08s ease, background 0.08s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); cursor: pointer;
         }
-
-        /* Spacing for the top row to stagger it properly */
-        .pad.spacer {
-            visibility: hidden;
-            width: 35px; /* Half the size of a pad to create the piano stagger */
+        
+        .pad.spacer { visibility: hidden; width: 34px; }
+        
+        .pad.active {
+            background: #ffffff; color: #121212; border-color: #ffffff;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
+            transform: scale(0.92);
         }
     </style>
 </head>
 <body>
 
-    <div class="keyboard-container">
-        <!-- Top Row (Black Keys) -->
-        <div class="row">
-            <div class="pad">W</div>
-            <div class="pad">E</div>
-            <div class="pad spacer"></div>
-            <div class="pad">Y</div>
-            <div class="pad">U</div>
-            <div class="pad">I</div>
+    <canvas id="visualizer"></canvas>
+
+    <div class="ui-container">
+        <div class="volume-container">
+            <div class="volume-bar" id="vol-bar"></div>
+            <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="0.5">
         </div>
-        
-        <!-- Bottom Row (White Keys) -->
-        <div class="row">
-            <div class="pad">A</div>
-            <div class="pad">S</div>
-            <div class="pad">D</div>
-            <div class="pad">G</div>
-            <div class="pad">H</div>
-            <div class="pad">J</div>
-            <div class="pad">K</div>
+
+        <div class="keyboard">
+            <div class="row">
+                <div class="pad" data-key="w">W</div><div class="pad" data-key="e">E</div>
+                <div class="pad spacer"></div>
+                <div class="pad" data-key="y">Y</div><div class="pad" data-key="u">U</div><div class="pad" data-key="i">I</div><div class="pad" data-key="o">O</div>
+            </div>
+            <div class="row">
+                <div class="pad" data-key="a">A</div><div class="pad" data-key="s">S</div><div class="pad" data-key="d">D</div>
+                <div class="pad" data-key="g">G</div><div class="pad" data-key="h">H</div><div class="pad" data-key="j">J</div><div class="pad" data-key="k">K</div>
+            </div>
         </div>
     </div>
 
+    <script>
+        const notes = {
+            'a': { freq: 261.63, color: '#ff2a2a' },
+            's': { freq: 293.66, color: '#ffaa00' },
+            'd': { freq: 329.63, color: '#84e527' },
+            'g': { freq: 392.00, color: '#1a75ff' },
+            'h': { freq: 440.00, color: '#b829ff' },
+            'j': { freq: 523.25, color: '#ff5e5e' },
+            'k': { freq: 587.33, color: '#ffc34d' },
+            'w': { freq: 659.25, color: '#a6f05b' },
+            'e': { freq: 783.99, color: '#4d94ff' },
+            'y': { freq: 880.00, color: '#d270ff' },
+            'u': { freq: 1046.50, color: '#ff8f8f' },
+            'i': { freq: 1174.66, color: '#ffd680' },
+            'o': { freq: 2093.00, color: '#ffffff' } 
+        };
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx, masterGain, convolver;
+        const activeOscillators = {};
+        const currentlyHeldKeys = new Set();
+        let globalVolume = 0.5;
+
+        const volSlider = document.getElementById('vol-slider');
+        const volBar = document.getElementById('vol-bar');
+        volSlider.addEventListener('input', (e) => {
+            globalVolume = parseFloat(e.target.value);
+            volBar.style.width = (globalVolume * 100) + '%';
+            if (masterGain) masterGain.gain.setValueAtTime(globalVolume, audioCtx.currentTime);
+        });
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new AudioContext();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = globalVolume;
+
+            convolver = audioCtx.createConvolver();
+            const length = audioCtx.sampleRate * 2.8;
+            const impulse = audioCtx.createBuffer(2, length, audioCtx.sampleRate);
+            for (let i = 0; i < length; i++) {
+                const decay = Math.pow(1 - i / length, 2.5);
+                impulse.getChannelData(0)[i] = (Math.random() * 2 - 1) * decay;
+                impulse.getChannelData(1)[i] = (Math.random() * 2 - 1) * decay;
+            }
+            convolver.buffer = impulse;
+            masterGain.connect(convolver);
+            convolver.connect(audioCtx.destination);
+            masterGain.connect(audioCtx.destination);
+        }
+
+        function playNote(key) {
+            initAudio();
+            if (activeOscillators[key] || !notes[key]) return;
+            
+            const osc1 = audioCtx.createOscillator(); osc1.type = 'triangle'; osc1.frequency.value = notes[key].freq;
+            const osc2 = audioCtx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = notes[key].freq + 1.2;
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.3);
+            
+            const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 900;
+            osc1.connect(filter); osc2.connect(filter); filter.connect(gainNode); gainNode.connect(masterGain);
+            osc1.start(); osc2.start();
+            
+            activeOscillators[key] = { osc1, osc2, gainNode };
+        }
+
+        function stopNote(key) {
+            if (!activeOscillators[key]) return;
+            const { osc1, osc2, gainNode } = activeOscillators[key];
+            gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+            osc1.stop(audioCtx.currentTime + 1.2); osc2.stop(audioCtx.currentTime + 1.2);
+            delete activeOscillators[key];
+        }
+
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+        const bgStars = [];
+        for(let i = 0; i < 500; i++) {
+            bgStars.push({
+                x: Math.random(), 
+                y: Math.random(),
+                radius: Math.random() * 1.5,
+                alpha: Math.random(),
+                speed: (Math.random() * 0.01) - 0.005 
+            });
+        }
+
+        const keyStars = {};
+        for (let key in notes) {
+            keyStars[key] = [];
+            // UPDATED: Now spawns between 8 and 15 stars per key
+            let numStars = Math.floor(Math.random() * 8) + 8; 
+            for (let i = 0; i < numStars; i++) {
+                keyStars[key].push({
+                    px: Math.random(), 
+                    py: Math.random() * 0.75, 
+                    maxScale: Math.random() * 0.8 + 0.4, 
+                    currentScale: 0
+                });
+            }
+        }
+
+        function drawFlare(x, y, scale, color) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = color;
+            ctx.fill();
+
+            ctx.fillStyle = color;
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = color;
+            
+            // UPDATED: Dramatically longer vertical beam (from 50 to 180)
+            ctx.beginPath();
+            ctx.moveTo(-1.5, 0); ctx.lineTo(0, -180); ctx.lineTo(1.5, 0); ctx.lineTo(0, 180);
+            ctx.closePath(); ctx.fill();
+
+            // UPDATED: Dramatically longer horizontal beam (from 50 to 180)
+            ctx.beginPath();
+            ctx.moveTo(0, -1.5); ctx.lineTo(-180, 0); ctx.lineTo(0, 1.5); ctx.lineTo(180, 0);
+            ctx.closePath(); ctx.fill();
+
+            ctx.restore();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'lighter'; 
+
+            bgStars.forEach(star => {
+                star.alpha += star.speed;
+                if (star.alpha >= 1) { star.alpha = 1; star.speed *= -1; }
+                if (star.alpha <= 0) { star.alpha = 0; star.speed *= -1; }
+                
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fillRect(star.x * canvas.width, star.y * canvas.height, star.radius, star.radius);
+            });
+
+            for (let key in keyStars) {
+                let isActive = currentlyHeldKeys.has(key);
+                keyStars[key].forEach(star => {
+                    if (isActive) {
+                        star.currentScale += (star.maxScale - star.currentScale) * 0.15; 
+                    } else {
+                        star.currentScale += (0 - star.currentScale) * 0.05; 
+                    }
+                    
+                    if (star.currentScale > 0.01) {
+                        drawFlare(star.px * canvas.width, star.py * canvas.height, star.currentScale, notes[key].color);
+                    }
+                });
+            }
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        function activatePad(key) {
+            const pad = document.querySelector(`.pad[data-key="${key}"]`);
+            if (!pad || !notes[key] || currentlyHeldKeys.has(key)) return;
+            pad.classList.add('active');
+            playNote(key); currentlyHeldKeys.add(key);
+        }
+
+        function deactivatePad(key) {
+            const pad = document.querySelector(`.pad[data-key="${key}"]`);
+            if (!pad) return;
+            pad.classList.remove('active');
+            stopNote(key); currentlyHeldKeys.delete(key);
+        }
+
+        document.addEventListener('keydown', (e) => { if (!e.repeat) activatePad(e.key.toLowerCase()); });
+        document.addEventListener('keyup', (e) => deactivatePad(e.key.toLowerCase()));
+        
+        document.querySelectorAll('.pad[data-key]').forEach(pad => {
+            const key = pad.getAttribute('data-key');
+            pad.addEventListener('mousedown', () => activatePad(key));
+            pad.addEventListener('mouseup', () => deactivatePad(key));
+            pad.addEventListener('mouseleave', () => deactivatePad(key));
+            pad.addEventListener('touchstart', (e) => { e.preventDefault(); activatePad(key); });
+            pad.addEventListener('touchend', (e) => { e.preventDefault(); deactivatePad(key); });
+        });
+    </script>
 </body>
 </html>
