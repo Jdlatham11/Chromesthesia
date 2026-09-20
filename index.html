@@ -1,1 +1,103 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joey Labs</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        /* 1. The Fading Gradient Background */
+        body {
+            height: 100vh;
+            background: linear-gradient(to bottom, #e0f2fe 0%, #ffffff 100%);
+            display: grid;
+            grid-template-rows: 1fr 1fr 1fr;
+            opacity: 0;
+            animation: fadeBackground 2s ease-in-out forwards;
+        }
+
+        @keyframes fadeBackground {
+            to { opacity: 1; }
+        }
+
+        /* 2. The Dropping Title */
+        .title-container {
+            grid-row: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: 6px;
+            color: #1e293b;
+            opacity: 0;
+            transform: translateY(-40px);
+            animation: dropFade 1.2s ease-out 0.8s forwards;
+        }
+
+        @keyframes dropFade {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 3. The Square Button in the Lower Third */
+        .nav-container {
+            grid-row: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-bottom: 10vh; /* Pushes it slightly up from the very bottom */
+        }
+
+        .project-btn {
+            width: 140px;
+            height: 140px;
+            background: #ffffff;
+            border: 1px solid #f1f5f9;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+            opacity: 0;
+            /* Fades in slightly after the title */
+            animation: fadeBackground 1s ease-in-out 1.6s forwards; 
+        }
+
+        .project-btn:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="title-container">
+        <h1>JOEY LABS</h1>
+    </div>
+    
+    <div class="nav-container">
+        <a href="chromesthesia.html" class="project-btn">Chromesthesia</a>
+    </div>
+
+</body>
+</html>
