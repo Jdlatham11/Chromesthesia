@@ -24,7 +24,18 @@
 
         #visualizer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
         
-        .ui-container { display: flex; flex-direction: column; gap: 20px; align-items: center; z-index: 10; width: 100%; }
+        .ui-container { display: flex; flex-direction: column; gap: 24px; align-items: center; z-index: 10; width: 100%; }
+
+        .patch-selector { display: flex; gap: 12px; }
+        .patch-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.6); padding: 8px 16px; border-radius: 20px;
+            cursor: pointer; transition: all 0.2s; font-size: 13px; font-weight: 600;
+            backdrop-filter: blur(4px); letter-spacing: 0.5px;
+        }
+        .patch-btn.active, .patch-btn:hover {
+            background: rgba(255,255,255,0.9); color: #121212; border-color: #ffffff;
+        }
 
         .volume-container {
             width: 200px; height: 3px; background: rgba(255, 255, 255, 0.15);
@@ -41,7 +52,7 @@
         }
 
         .keyboard { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-        .row { display: flex; gap: 16px; }
+        .row { display: flex; gap: 16px; justify-content: center; }
         
         .pad {
             width: 68px; height: 68px; border-radius: 50%;
@@ -66,6 +77,13 @@
     <canvas id="visualizer"></canvas>
 
     <div class="ui-container">
+        <div class="patch-selector">
+            <button class="patch-btn active" data-patch="cosmos">Cosmos</button>
+            <button class="patch-btn" data-patch="saw">Neon Saw</button>
+            <button class="patch-btn" data-patch="ghost">Ghost Choir</button>
+            <button class="patch-btn" data-patch="pluck">8-Bit Pluck</button>
+        </div>
+
         <div class="volume-container">
             <div class="volume-bar" id="vol-bar"></div>
             <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="0.5">
@@ -75,37 +93,51 @@
             <div class="row">
                 <div class="pad" data-key="w">W</div><div class="pad" data-key="e">E</div>
                 <div class="pad spacer"></div>
-                <div class="pad" data-key="y">Y</div><div class="pad" data-key="u">U</div><div class="pad" data-key="i">I</div><div class="pad" data-key="o">O</div>
+                <div class="pad" data-key="t">T</div><div class="pad" data-key="y">Y</div><div class="pad" data-key="u">U</div>
+                <div class="pad spacer"></div>
+                <div class="pad" data-key="o">O</div>
             </div>
             <div class="row">
                 <div class="pad" data-key="a">A</div><div class="pad" data-key="s">S</div><div class="pad" data-key="d">D</div>
-                <div class="pad" data-key="g">G</div><div class="pad" data-key="h">H</div><div class="pad" data-key="j">J</div><div class="pad" data-key="k">K</div>
+                <div class="pad" data-key="f">F</div><div class="pad" data-key="g">G</div><div class="pad" data-key="h">H</div><div class="pad" data-key="j">J</div>
             </div>
         </div>
     </div>
 
     <script>
+        // Chromatic Scale Mapping (C4 to C5)
         const notes = {
-            'a': { freq: 261.63, color: '#ff2a2a' },
-            's': { freq: 293.66, color: '#ffaa00' },
-            'd': { freq: 329.63, color: '#84e527' },
-            'g': { freq: 392.00, color: '#1a75ff' },
-            'h': { freq: 440.00, color: '#b829ff' },
-            'j': { freq: 523.25, color: '#ff5e5e' },
-            'k': { freq: 587.33, color: '#ffc34d' },
-            'w': { freq: 659.25, color: '#a6f05b' },
-            'e': { freq: 783.99, color: '#4d94ff' },
-            'y': { freq: 880.00, color: '#d270ff' },
-            'u': { freq: 1046.50, color: '#ff8f8f' },
-            'i': { freq: 1174.66, color: '#ffd680' },
-            'o': { freq: 2093.00, color: '#ffffff' } 
+            'a': { freq: 261.63, color: '#ff2a2a' }, // C
+            'w': { freq: 277.18, color: '#ff5e2a' }, // C#
+            's': { freq: 293.66, color: '#ffaa00' }, // D
+            'e': { freq: 311.13, color: '#d4c919' }, // D#
+            'd': { freq: 329.63, color: '#84e527' }, // E
+            'f': { freq: 349.23, color: '#27e57c' }, // F
+            't': { freq: 369.99, color: '#27e5d4' }, // F#
+            'g': { freq: 392.00, color: '#1a75ff' }, // G
+            'y': { freq: 415.30, color: '#5e1aff' }, // G#
+            'h': { freq: 440.00, color: '#b829ff' }, // A
+            'u': { freq: 466.16, color: '#ff29d4' }, // A#
+            'j': { freq: 493.88, color: '#ff5e5e' }, // B
+            'o': { freq: 523.25, color: '#ffffff' }  // C5 (Octave Up)
         };
 
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         let audioCtx, masterGain, convolver;
         const activeOscillators = {};
         const currentlyHeldKeys = new Set();
+        
         let globalVolume = 0.5;
+        let currentPatch = 'cosmos';
+
+        // UI Event Listeners
+        document.querySelectorAll('.patch-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.patch-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentPatch = e.target.getAttribute('data-patch');
+            });
+        });
 
         const volSlider = document.getElementById('vol-slider');
         const volBar = document.getElementById('vol-bar');
@@ -139,14 +171,47 @@
             initAudio();
             if (activeOscillators[key] || !notes[key]) return;
             
-            const osc1 = audioCtx.createOscillator(); osc1.type = 'triangle'; osc1.frequency.value = notes[key].freq;
-            const osc2 = audioCtx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = notes[key].freq + 1.2;
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.3);
-            
-            const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 900;
-            osc1.connect(filter); osc2.connect(filter); filter.connect(gainNode); gainNode.connect(masterGain);
+            const filter = audioCtx.createBiquadFilter();
+
+            const freq = notes[key].freq;
+            const now = audioCtx.currentTime;
+
+            if (currentPatch === 'cosmos') {
+                osc1.type = 'triangle'; osc2.type = 'sine';
+                osc1.frequency.value = freq; osc2.frequency.value = freq + 1.2;
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.25, now + 0.3);
+                filter.type = 'lowpass'; filter.frequency.value = 900;
+            } 
+            else if (currentPatch === 'saw') {
+                osc1.type = 'sawtooth'; osc2.type = 'sawtooth';
+                osc1.frequency.value = freq; osc2.frequency.value = freq * 1.01;
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.15, now + 0.1);
+                filter.type = 'lowpass'; filter.frequency.value = 2500;
+                filter.frequency.exponentialRampToValueAtTime(500, now + 0.5);
+            }
+            else if (currentPatch === 'ghost') {
+                osc1.type = 'sine'; osc2.type = 'sine';
+                osc1.frequency.value = freq; osc2.frequency.value = freq * 2; // Octave up
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.25, now + 0.8); // Slow attack
+                filter.type = 'lowpass'; filter.frequency.value = 800;
+            }
+            else if (currentPatch === 'pluck') {
+                osc1.type = 'square'; osc2.type = 'square';
+                osc1.frequency.value = freq; osc2.frequency.value = freq / 2; // Octave down
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05); // Sharp attack
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6); // Fast decay
+                filter.type = 'lowpass'; filter.frequency.value = 1500;
+            }
+
+            osc1.connect(filter); osc2.connect(filter); 
+            filter.connect(gainNode); gainNode.connect(masterGain);
             osc1.start(); osc2.start();
             
             activeOscillators[key] = { osc1, osc2, gainNode };
@@ -155,13 +220,19 @@
         function stopNote(key) {
             if (!activeOscillators[key]) return;
             const { osc1, osc2, gainNode } = activeOscillators[key];
-            gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(gainNode.gain.value, audioCtx.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
-            osc1.stop(audioCtx.currentTime + 1.2); osc2.stop(audioCtx.currentTime + 1.2);
+            const now = audioCtx.currentTime;
+            
+            gainNode.gain.cancelScheduledValues(now);
+            gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+            
+            let releaseTime = currentPatch === 'ghost' ? 1.5 : 0.8;
+            gainNode.gain.linearRampToValueAtTime(0.0001, now + releaseTime);
+            
+            osc1.stop(now + releaseTime); osc2.stop(now + releaseTime);
             delete activeOscillators[key];
         }
 
+        // --- VISUALS ---
         const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
         
@@ -171,12 +242,13 @@
         function resizeCanvas() { 
             canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
             
-            // Map the arch based on pitch (lowest frequency to highest)
             sortedKeys.forEach((key, index) => {
-                let progress = index / (sortedKeys.length - 1); // 0.0 to 1.0
+                let progress = index / (sortedKeys.length - 1); 
+                let archY = 0.8 - (Math.pow(progress, 1.5) * 0.6);
                 keyPositions[key] = {
-                    rx: 0.15 + (progress * 0.7), // Sweeps from 15% to 85% width
-                    ry: 0.8 - (Math.pow(progress, 1.5) * 0.6), // Swoops up from 80% to 20% height
+                    rx: 0.15 + (progress * 0.7), 
+                    baseRy: archY,
+                    currentRy: archY,
                     currentScale: 0
                 };
             });
@@ -191,22 +263,17 @@
             });
         }
 
-        // --- Ambient Systems ---
         const satellites = [
             { x: Math.random() * window.innerWidth, y: Math.random() * (window.innerHeight/2), vx: 0.2, vy: 0.05 },
             { x: Math.random() * window.innerWidth, y: Math.random() * (window.innerHeight/2), vx: -0.15, vy: -0.08 }
         ];
 
         let shootingStar = { active: false, x: 0, y: 0, vx: 0, vy: 0, length: 0, opacity: 0 };
-        
         function spawnShootingStar() {
             if (Math.random() < 0.002 && !shootingStar.active) {
                 shootingStar = {
-                    active: true,
-                    x: Math.random() * window.innerWidth,
-                    y: Math.random() * (window.innerHeight / 2),
-                    vx: (Math.random() * 8) + 4 * (Math.random() > 0.5 ? 1 : -1),
-                    vy: (Math.random() * 4) + 2,
+                    active: true, x: Math.random() * window.innerWidth, y: Math.random() * (window.innerHeight / 2),
+                    vx: (Math.random() * 8) + 4 * (Math.random() > 0.5 ? 1 : -1), vy: (Math.random() * 4) + 2,
                     length: 0, opacity: 1
                 };
             }
@@ -231,18 +298,14 @@
         function drawFlare(x, y, scale, color) {
             ctx.save();
             ctx.translate(x, y); ctx.scale(scale, scale);
-
             ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2);
             ctx.fillStyle = color; ctx.globalAlpha = 0.3; ctx.fill();
-
             ctx.globalAlpha = 1.0;
             ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2);
             ctx.fillStyle = '#ffffff'; ctx.fill();
-
             ctx.fillStyle = color; ctx.globalAlpha = 0.9;
             ctx.beginPath(); ctx.moveTo(-1.5, 0); ctx.lineTo(0, -220); ctx.lineTo(1.5, 0); ctx.lineTo(0, 220); ctx.closePath(); ctx.fill();
             ctx.beginPath(); ctx.moveTo(0, -1.5); ctx.lineTo(-220, 0); ctx.lineTo(0, 1.5); ctx.lineTo(220, 0); ctx.closePath(); ctx.fill();
-
             ctx.restore();
         }
 
@@ -250,7 +313,6 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.globalCompositeOperation = 'lighter'; 
 
-            // Background Stars
             bgStars.forEach(star => {
                 star.alpha += star.speed;
                 if (star.alpha >= 1) { star.alpha = 1; star.speed *= -1; }
@@ -259,7 +321,6 @@
                 ctx.fillRect(star.x * canvas.width, star.y * canvas.height, star.radius, star.radius);
             });
 
-            // Satellites
             satellites.forEach(sat => {
                 sat.x += sat.vx; sat.y += sat.vy;
                 if (sat.x > canvas.width) sat.x = 0; if (sat.x < 0) sat.x = canvas.width;
@@ -268,13 +329,11 @@
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; ctx.fill();
             });
 
-            // Asteroids
-            ctx.globalCompositeOperation = 'source-over'; // Don't glow the asteroids
+            ctx.globalCompositeOperation = 'source-over'; 
             asteroids.forEach(ast => {
                 ast.x += ast.vx; ast.y += ast.vy; ast.angle += ast.rotSpeed;
                 if (ast.x > canvas.width + 50) ast.x = -50; if (ast.x < -50) ast.x = canvas.width + 50;
                 if (ast.y > canvas.height + 50) ast.y = -50; if (ast.y < -50) ast.y = canvas.height + 50;
-                
                 ctx.save(); ctx.translate(ast.x, ast.y); ctx.rotate(ast.angle);
                 ctx.beginPath();
                 ast.vertices.forEach((v, i) => { if (i === 0) ctx.moveTo(v.x, v.y); else ctx.lineTo(v.x, v.y); });
@@ -284,7 +343,6 @@
                 ctx.restore();
             });
 
-            // Shooting Star
             ctx.globalCompositeOperation = 'lighter';
             spawnShootingStar();
             if (shootingStar.active) {
@@ -292,9 +350,7 @@
                 shootingStar.length = Math.min(shootingStar.length + 5, 80);
                 shootingStar.opacity -= 0.015;
                 if (shootingStar.opacity <= 0) shootingStar.active = false;
-                
-                ctx.beginPath();
-                ctx.moveTo(shootingStar.x, shootingStar.y);
+                ctx.beginPath(); ctx.moveTo(shootingStar.x, shootingStar.y);
                 let tailX = shootingStar.x - (shootingStar.vx * (shootingStar.length / 10));
                 let tailY = shootingStar.y - (shootingStar.vy * (shootingStar.length / 10));
                 ctx.lineTo(tailX, tailY);
@@ -302,19 +358,20 @@
                 ctx.lineWidth = 2; ctx.stroke();
             }
 
-            // The Pitch-Mapped Arch Flares
+            // Rising Notes Engine
             for (let key in keyPositions) {
                 let isActive = currentlyHeldKeys.has(key);
                 let star = keyPositions[key];
                 
                 if (isActive) {
                     star.currentScale += (1.0 - star.currentScale) * 0.15; 
+                    star.currentRy -= 0.003; // Drift upward while pressed
                 } else {
-                    star.currentScale += (0 - star.currentScale) * 0.05; 
+                    star.currentScale += (0 - star.currentScale) * 0.1; // Fade out rapidly
                 }
                 
                 if (star.currentScale > 0.01) {
-                    drawFlare(star.rx * canvas.width, star.ry * canvas.height, star.currentScale, notes[key].color);
+                    drawFlare(star.rx * canvas.width, star.currentRy * canvas.height, star.currentScale, notes[key].color);
                 }
             }
 
@@ -326,6 +383,10 @@
             const pad = document.querySelector(`.pad[data-key="${key}"]`);
             if (!pad || !notes[key] || currentlyHeldKeys.has(key)) return;
             pad.classList.add('active');
+            
+            // Reset visual position to the arch base on strike
+            if (keyPositions[key]) keyPositions[key].currentRy = keyPositions[key].baseRy;
+            
             playNote(key); currentlyHeldKeys.add(key);
         }
 
