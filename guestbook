@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Book</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { height: 100vh; background: linear-gradient(to bottom, #e0f2fe 0%, #ffffff 100%); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        
+        .back-btn { position: absolute; top: 30px; left: 30px; color: #64748b; text-decoration: none; font-size: 28px; z-index: 100; transition: transform 0.2s ease; }
+        .back-btn:hover { transform: translateX(-5px); color: #0f172a; }
+
+        /* The Open Book */
+        .book { width: 90vw; max-width: 800px; height: 60vh; background: #fdfbf7; border-radius: 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.1), inset 0 0 40px rgba(0,0,0,0.02); display: flex; position: relative; }
+        .page { flex: 1; padding: 40px; position: relative; }
+        .spine { position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; background: linear-gradient(to right, rgba(0,0,0,0.02), rgba(0,0,0,0.1), rgba(0,0,0,0.02)); transform: translateX(-50%); box-shadow: -1px 0 5px rgba(0,0,0,0.02), 1px 0 5px rgba(0,0,0,0.02); }
+        .page h2 { color: #475569; font-weight: 300; letter-spacing: 2px; margin-bottom: 30px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+        #signature-display { display: flex; flex-wrap: wrap; gap: 20px; }
+        .signed-img { max-height: 50px; opacity: 0.8; mix-blend-mode: multiply; }
+
+        /* Dangling Pen */
+        .pen-wrapper { position: absolute; top: -50px; right: 15%; transform-origin: top center; animation: swing 4s ease-in-out infinite alternate; cursor: pointer; z-index: 10; transition: filter 0.2s; }
+        .pen-wrapper:hover { filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2)); }
+        @keyframes swing { 0% { transform: rotate(-6deg); } 100% { transform: rotate(6deg); } }
+        .string { width: 2px; height: 120px; background: #cbd5e1; margin: 0 auto; }
+        .pen { width: 14px; height: 80px; background: linear-gradient(to right, #1e293b, #334155); margin: 0 auto; border-radius: 2px; position: relative; }
+        .pen::after { content: ''; position: absolute; bottom: -12px; left: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 12px solid #cbd5e1; }
+        .pen::before { content: ''; position: absolute; bottom: -14px; left: 5px; width: 4px; height: 4px; background: #0f172a; border-radius: 50%; z-index: 2; }
+
+        /* MS Paint Interface Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(3px); align-items: center; justify-content: center; z-index: 200; }
+        .modal.active { display: flex; }
+        .paint-box { background: #cbd5e1; padding: 15px; border-radius: 4px; border: 2px solid #94a3b8; box-shadow: 0 25px 50px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 10px; }
+        .paint-header { font-size: 12px; font-weight: bold; color: #334155; font-family: "Courier New", Courier, monospace; letter-spacing: 1px; }
+        #draw-canvas { background: #ffffff; border: 1px inset #64748b; cursor: crosshair; touch-action: none; }
+        .controls { display: flex; justify-content: space-between; gap: 10px; }
+        button { padding: 6px 12px; border: 1px solid #94a3b8; border-radius: 2px; font-size: 12px; font-weight: bold; cursor: pointer; background: #e2e8f0; color: #334155; }
+        button:hover { background: #f1f5f9; }
+        .save-btn { background: #3b82f6; color: white; border-color: #2563eb; }
+        .save-btn:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-btn">&#8592;</a>
+
+    <div class="pen-wrapper" id="open-paint">
+        <div class="string"></div>
+        <div class="pen"></div>
+    </div>
+
+    <div class="book">
+        <div class="page">
+            <h2>VISITORS</h2>
+            <div id="signature-display"></div>
+        </div>
+        <div class="spine"></div>
+        <div class="page"></div>
+    </div>
+
+    <div class="modal" id="paint-modal">
+        <div class="paint-box">
+            <div class="paint-header">Sign.exe</div>
+            <canvas id="draw-canvas" width="400" height="200"></canvas>
+            <div class="controls">
+                <button id="clear-btn">Clear</button>
+                <div>
+                    <button id="cancel-btn">Cancel</button>
+                    <button class="save-btn" id="save-btn">Stamp Signature</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const modal = document.getElementById('paint-modal');
+        const openBtn = document.getElementById('open-paint');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const display = document.getElementById('signature-display');
+        
+        const canvas = document.getElementById('draw-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let isDrawing = false;
+        
+        // Set up drawing style
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#0f172a';
+
+        // Open/Close Modal
+        openBtn.addEventListener('click', () => modal.classList.add('active'));
+        cancelBtn.addEventListener('click', () => modal.classList.remove('active'));
+
+        // Drawing Logic
+        function startPosition(e) {
+            isDrawing = true;
+            draw(e);
+        }
+
+        function endPosition() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault(); // Prevents scrolling on touch screens
+            
+            // Get correct mouse/touch coordinates relative to canvas
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            ctx.lineTo(clientX - rect.left, clientY - rect.top);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(clientX - rect.left, clientY - rect.top);
+        }
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', startPosition);
+        canvas.addEventListener('mouseup', endPosition);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseout', endPosition);
+
+        // Touch Events for Mobile
+        canvas.addEventListener('touchstart', startPosition);
+        canvas.addEventListener('touchend', endPosition);
+        canvas.addEventListener('touchmove', draw);
+
+        // Clear Canvas
+        clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Save Signature to Book
+        saveBtn.addEventListener('click', () => {
+            // Convert canvas drawing to an image URL
+            const dataURL = canvas.toDataURL('image/png');
+            
+            // Create an image element and append it to the book
+            const img = document.createElement('img');
+            img.src = dataURL;
+            img.className = 'signed-img';
+            display.appendChild(img);
+
+            // Clear and close
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            modal.classList.remove('active');
+        });
+    </script>
+</body>
+</html>
