@@ -105,21 +105,20 @@
     </div>
 
     <script>
-        // Chromatic Scale Mapping (C4 to C5)
         const notes = {
-            'a': { freq: 261.63, color: '#ff2a2a' }, // C
-            'w': { freq: 277.18, color: '#ff5e2a' }, // C#
-            's': { freq: 293.66, color: '#ffaa00' }, // D
-            'e': { freq: 311.13, color: '#d4c919' }, // D#
-            'd': { freq: 329.63, color: '#84e527' }, // E
-            'f': { freq: 349.23, color: '#27e57c' }, // F
-            't': { freq: 369.99, color: '#27e5d4' }, // F#
-            'g': { freq: 392.00, color: '#1a75ff' }, // G
-            'y': { freq: 415.30, color: '#5e1aff' }, // G#
-            'h': { freq: 440.00, color: '#b829ff' }, // A
-            'u': { freq: 466.16, color: '#ff29d4' }, // A#
-            'j': { freq: 493.88, color: '#ff5e5e' }, // B
-            'o': { freq: 523.25, color: '#ffffff' }  // C5 (Octave Up)
+            'a': { freq: 261.63, color: '#ff2a2a' }, 
+            'w': { freq: 277.18, color: '#ff5e2a' }, 
+            's': { freq: 293.66, color: '#ffaa00' }, 
+            'e': { freq: 311.13, color: '#d4c919' }, 
+            'd': { freq: 329.63, color: '#84e527' }, 
+            'f': { freq: 349.23, color: '#27e57c' }, 
+            't': { freq: 369.99, color: '#27e5d4' }, 
+            'g': { freq: 392.00, color: '#1a75ff' }, 
+            'y': { freq: 415.30, color: '#5e1aff' }, 
+            'h': { freq: 440.00, color: '#b829ff' }, 
+            'u': { freq: 466.16, color: '#ff29d4' }, 
+            'j': { freq: 493.88, color: '#ff5e5e' }, 
+            'o': { freq: 523.25, color: '#ffffff' }  
         };
 
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -130,7 +129,6 @@
         let globalVolume = 0.5;
         let currentPatch = 'cosmos';
 
-        // UI Event Listeners
         document.querySelectorAll('.patch-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.patch-btn').forEach(b => b.classList.remove('active'));
@@ -196,17 +194,17 @@
             }
             else if (currentPatch === 'ghost') {
                 osc1.type = 'sine'; osc2.type = 'sine';
-                osc1.frequency.value = freq; osc2.frequency.value = freq * 2; // Octave up
+                osc1.frequency.value = freq; osc2.frequency.value = freq * 2; 
                 gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(0.25, now + 0.8); // Slow attack
+                gainNode.gain.linearRampToValueAtTime(0.25, now + 0.8); 
                 filter.type = 'lowpass'; filter.frequency.value = 800;
             }
             else if (currentPatch === 'pluck') {
                 osc1.type = 'square'; osc2.type = 'square';
-                osc1.frequency.value = freq; osc2.frequency.value = freq / 2; // Octave down
+                osc1.frequency.value = freq; osc2.frequency.value = freq / 2; 
                 gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05); // Sharp attack
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6); // Fast decay
+                gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05); 
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6); 
                 filter.type = 'lowpass'; filter.frequency.value = 1500;
             }
 
@@ -232,12 +230,23 @@
             delete activeOscillators[key];
         }
 
+        // --- Helper for the Chord Core Math ---
+        function hexToRgb(hex) {
+            let r = parseInt(hex.slice(1, 3), 16);
+            let g = parseInt(hex.slice(3, 5), 16);
+            let b = parseInt(hex.slice(5, 7), 16);
+            return {r, g, b};
+        }
+
         // --- VISUALS ---
         const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
         
         let sortedKeys = Object.keys(notes).sort((a, b) => notes[a].freq - notes[b].freq);
         let keyPositions = {};
+        
+        // Track the central chord core data
+        let chordCore = { r: 255, g: 255, b: 255, scale: 0 };
 
         function resizeCanvas() { 
             canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
@@ -343,7 +352,59 @@
                 ctx.restore();
             });
 
+            // Switch back to additive blending for light effects
             ctx.globalCompositeOperation = 'lighter';
+
+            // --- Calculate & Draw The Global Chord Core ---
+            let activeArr = Array.from(currentlyHeldKeys);
+            let targetScale = 0;
+            let tr = 0, tg = 0, tb = 0;
+
+            if (activeArr.length > 0) {
+                targetScale = 1 + (activeArr.length * 0.35); // Grows larger with more keys
+                activeArr.forEach(key => {
+                    let rgb = hexToRgb(notes[key].color);
+                    tr += rgb.r; tg += rgb.g; tb += rgb.b;
+                });
+                tr /= activeArr.length;
+                tg /= activeArr.length;
+                tb /= activeArr.length;
+            } else {
+                tr = chordCore.r; tg = chordCore.g; tb = chordCore.b; // Hold last color while fading out
+            }
+
+            // Smoothly animate the core values
+            chordCore.scale += (targetScale - chordCore.scale) * 0.1;
+            chordCore.r += (tr - chordCore.r) * 0.1;
+            chordCore.g += (tg - chordCore.g) * 0.1;
+            chordCore.b += (tb - chordCore.b) * 0.1;
+
+            if (chordCore.scale > 0.01) {
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.scale(chordCore.scale, chordCore.scale);
+                
+                // Draw the massive blended aura
+                let grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 200);
+                grad.addColorStop(0, `rgba(${Math.floor(chordCore.r)}, ${Math.floor(chordCore.g)}, ${Math.floor(chordCore.b)}, 0.4)`);
+                grad.addColorStop(0.4, `rgba(${Math.floor(chordCore.r)}, ${Math.floor(chordCore.g)}, ${Math.floor(chordCore.b)}, 0.1)`);
+                grad.addColorStop(1, `rgba(${Math.floor(chordCore.r)}, ${Math.floor(chordCore.g)}, ${Math.floor(chordCore.b)}, 0)`);
+                
+                ctx.beginPath();
+                ctx.arc(0, 0, 200, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // Draw the intense bright center
+                ctx.beginPath();
+                ctx.arc(0, 0, 25, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, chordCore.scale * 0.3)})`;
+                ctx.fill();
+                
+                ctx.restore();
+            }
+            // ----------------------------------------------
+
             spawnShootingStar();
             if (shootingStar.active) {
                 shootingStar.x += shootingStar.vx; shootingStar.y += shootingStar.vy;
@@ -358,16 +419,15 @@
                 ctx.lineWidth = 2; ctx.stroke();
             }
 
-            // Rising Notes Engine
             for (let key in keyPositions) {
                 let isActive = currentlyHeldKeys.has(key);
                 let star = keyPositions[key];
                 
                 if (isActive) {
                     star.currentScale += (1.0 - star.currentScale) * 0.15; 
-                    star.currentRy -= 0.003; // Drift upward while pressed
+                    star.currentRy -= 0.003; 
                 } else {
-                    star.currentScale += (0 - star.currentScale) * 0.1; // Fade out rapidly
+                    star.currentScale += (0 - star.currentScale) * 0.1; 
                 }
                 
                 if (star.currentScale > 0.01) {
@@ -384,7 +444,6 @@
             if (!pad || !notes[key] || currentlyHeldKeys.has(key)) return;
             pad.classList.add('active');
             
-            // Reset visual position to the arch base on strike
             if (keyPositions[key]) keyPositions[key].currentRy = keyPositions[key].baseRy;
             
             playNote(key); currentlyHeldKeys.add(key);
