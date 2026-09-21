@@ -16,34 +16,23 @@
         }
 
         .back-btn {
-            position: absolute;
-            top: 30px;
-            left: 30px;
-            color: rgba(255, 255, 255, 0.4);
-            text-decoration: none;
-            font-size: 28px;
-            z-index: 100;
-            transition: color 0.2s ease, transform 0.2s ease;
+            position: absolute; top: 30px; left: 30px;
+            color: rgba(255, 255, 255, 0.4); text-decoration: none;
+            font-size: 28px; z-index: 100; transition: color 0.2s ease, transform 0.2s ease;
         }
-        .back-btn:hover {
-            color: #ffffff;
-            transform: translateX(-5px);
-        }
+        .back-btn:hover { color: #ffffff; transform: translateX(-5px); }
 
         #visualizer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
         
         .ui-container { display: flex; flex-direction: column; gap: 20px; align-items: center; z-index: 10; width: 100%; }
 
         .volume-container {
-            width: 200px; height: 3px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 4px; position: relative;
-            transition: height 0.2s ease, background 0.2s ease;
+            width: 200px; height: 3px; background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px; position: relative; transition: height 0.2s ease, background 0.2s ease;
         }
         .volume-container:hover { height: 14px; background: rgba(255, 255, 255, 0.25); }
         .volume-bar {
-            height: 100%; width: 50%;
-            background: #ffffff; border-radius: 4px;
+            height: 100%; width: 50%; background: #ffffff; border-radius: 4px;
             pointer-events: none; transition: width 0.1s linear;
         }
         .volume-container input {
@@ -67,8 +56,7 @@
         
         .pad.active {
             background: #ffffff; color: #121212; border-color: #ffffff;
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8);
-            transform: scale(0.92);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.8); transform: scale(0.92);
         }
     </style>
 </head>
@@ -177,61 +165,83 @@
         const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
         
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        let sortedKeys = Object.keys(notes).sort((a, b) => notes[a].freq - notes[b].freq);
+        let keyPositions = {};
+
+        function resizeCanvas() { 
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
+            
+            // Map the arch based on pitch (lowest frequency to highest)
+            sortedKeys.forEach((key, index) => {
+                let progress = index / (sortedKeys.length - 1); // 0.0 to 1.0
+                keyPositions[key] = {
+                    rx: 0.15 + (progress * 0.7), // Sweeps from 15% to 85% width
+                    ry: 0.8 - (Math.pow(progress, 1.5) * 0.6), // Swoops up from 80% to 20% height
+                    currentScale: 0
+                };
+            });
+        }
         window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
         const bgStars = [];
         for(let i = 0; i < 150; i++) {
             bgStars.push({
-                x: Math.random(), 
-                y: Math.random(),
-                radius: Math.random() * 1.5,
-                alpha: Math.random(),
-                speed: (Math.random() * 0.01) - 0.005 
+                x: Math.random(), y: Math.random(), radius: Math.random() * 1.5,
+                alpha: Math.random(), speed: (Math.random() * 0.01) - 0.005 
             });
         }
 
-        const keyStars = {};
-        for (let key in notes) {
-            keyStars[key] = [];
-            let numStars = Math.floor(Math.random() * 3) + 3; 
-            for (let i = 0; i < numStars; i++) {
-                keyStars[key].push({
-                    px: Math.random(), 
-                    py: Math.random() * 0.75, 
-                    maxScale: Math.random() * 0.8 + 0.4, 
-                    currentScale: 0
-                });
+        // --- Ambient Systems ---
+        const satellites = [
+            { x: Math.random() * window.innerWidth, y: Math.random() * (window.innerHeight/2), vx: 0.2, vy: 0.05 },
+            { x: Math.random() * window.innerWidth, y: Math.random() * (window.innerHeight/2), vx: -0.15, vy: -0.08 }
+        ];
+
+        let shootingStar = { active: false, x: 0, y: 0, vx: 0, vy: 0, length: 0, opacity: 0 };
+        
+        function spawnShootingStar() {
+            if (Math.random() < 0.002 && !shootingStar.active) {
+                shootingStar = {
+                    active: true,
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * (window.innerHeight / 2),
+                    vx: (Math.random() * 8) + 4 * (Math.random() > 0.5 ? 1 : -1),
+                    vy: (Math.random() * 4) + 2,
+                    length: 0, opacity: 1
+                };
             }
+        }
+
+        const asteroids = [];
+        for(let i=0; i<2; i++) {
+            let vertices = [];
+            let numPoints = 5 + Math.floor(Math.random() * 3);
+            for(let p=0; p<numPoints; p++) {
+                let angle = (p / numPoints) * Math.PI * 2;
+                let rad = 15 + Math.random() * 15;
+                vertices.push({x: Math.cos(angle) * rad, y: Math.sin(angle) * rad});
+            }
+            asteroids.push({
+                x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
+                vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+                angle: 0, rotSpeed: (Math.random() - 0.5) * 0.02, vertices: vertices
+            });
         }
 
         function drawFlare(x, y, scale, color) {
             ctx.save();
-            ctx.translate(x, y);
-            ctx.scale(scale, scale);
+            ctx.translate(x, y); ctx.scale(scale, scale);
 
-            ctx.beginPath();
-            ctx.arc(0, 0, 12, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.globalAlpha = 0.3;
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2);
+            ctx.fillStyle = color; ctx.globalAlpha = 0.3; ctx.fill();
 
             ctx.globalAlpha = 1.0;
-            ctx.beginPath();
-            ctx.arc(0, 0, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff'; ctx.fill();
 
-            ctx.fillStyle = color;
-            ctx.globalAlpha = 0.9;
-            
-            ctx.beginPath();
-            ctx.moveTo(-1.5, 0); ctx.lineTo(0, -180); ctx.lineTo(1.5, 0); ctx.lineTo(0, 180);
-            ctx.closePath(); ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(0, -1.5); ctx.lineTo(-180, 0); ctx.lineTo(0, 1.5); ctx.lineTo(180, 0);
-            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = color; ctx.globalAlpha = 0.9;
+            ctx.beginPath(); ctx.moveTo(-1.5, 0); ctx.lineTo(0, -220); ctx.lineTo(1.5, 0); ctx.lineTo(0, 220); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(0, -1.5); ctx.lineTo(-220, 0); ctx.lineTo(0, 1.5); ctx.lineTo(220, 0); ctx.closePath(); ctx.fill();
 
             ctx.restore();
         }
@@ -240,28 +250,72 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.globalCompositeOperation = 'lighter'; 
 
+            // Background Stars
             bgStars.forEach(star => {
                 star.alpha += star.speed;
                 if (star.alpha >= 1) { star.alpha = 1; star.speed *= -1; }
                 if (star.alpha <= 0) { star.alpha = 0; star.speed *= -1; }
-                
                 ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
                 ctx.fillRect(star.x * canvas.width, star.y * canvas.height, star.radius, star.radius);
             });
 
-            for (let key in keyStars) {
+            // Satellites
+            satellites.forEach(sat => {
+                sat.x += sat.vx; sat.y += sat.vy;
+                if (sat.x > canvas.width) sat.x = 0; if (sat.x < 0) sat.x = canvas.width;
+                if (sat.y > canvas.height) sat.y = 0; if (sat.y < 0) sat.y = canvas.height;
+                ctx.beginPath(); ctx.arc(sat.x, sat.y, 1.2, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; ctx.fill();
+            });
+
+            // Asteroids
+            ctx.globalCompositeOperation = 'source-over'; // Don't glow the asteroids
+            asteroids.forEach(ast => {
+                ast.x += ast.vx; ast.y += ast.vy; ast.angle += ast.rotSpeed;
+                if (ast.x > canvas.width + 50) ast.x = -50; if (ast.x < -50) ast.x = canvas.width + 50;
+                if (ast.y > canvas.height + 50) ast.y = -50; if (ast.y < -50) ast.y = canvas.height + 50;
+                
+                ctx.save(); ctx.translate(ast.x, ast.y); ctx.rotate(ast.angle);
+                ctx.beginPath();
+                ast.vertices.forEach((v, i) => { if (i === 0) ctx.moveTo(v.x, v.y); else ctx.lineTo(v.x, v.y); });
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'; ctx.lineWidth = 1; ctx.stroke();
+                ctx.fillStyle = 'rgba(15, 20, 25, 0.4)'; ctx.fill();
+                ctx.restore();
+            });
+
+            // Shooting Star
+            ctx.globalCompositeOperation = 'lighter';
+            spawnShootingStar();
+            if (shootingStar.active) {
+                shootingStar.x += shootingStar.vx; shootingStar.y += shootingStar.vy;
+                shootingStar.length = Math.min(shootingStar.length + 5, 80);
+                shootingStar.opacity -= 0.015;
+                if (shootingStar.opacity <= 0) shootingStar.active = false;
+                
+                ctx.beginPath();
+                ctx.moveTo(shootingStar.x, shootingStar.y);
+                let tailX = shootingStar.x - (shootingStar.vx * (shootingStar.length / 10));
+                let tailY = shootingStar.y - (shootingStar.vy * (shootingStar.length / 10));
+                ctx.lineTo(tailX, tailY);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${Math.max(0, shootingStar.opacity)})`;
+                ctx.lineWidth = 2; ctx.stroke();
+            }
+
+            // The Pitch-Mapped Arch Flares
+            for (let key in keyPositions) {
                 let isActive = currentlyHeldKeys.has(key);
-                keyStars[key].forEach(star => {
-                    if (isActive) {
-                        star.currentScale += (star.maxScale - star.currentScale) * 0.15; 
-                    } else {
-                        star.currentScale += (0 - star.currentScale) * 0.05; 
-                    }
-                    
-                    if (star.currentScale > 0.01) {
-                        drawFlare(star.px * canvas.width, star.py * canvas.height, star.currentScale, notes[key].color);
-                    }
-                });
+                let star = keyPositions[key];
+                
+                if (isActive) {
+                    star.currentScale += (1.0 - star.currentScale) * 0.15; 
+                } else {
+                    star.currentScale += (0 - star.currentScale) * 0.05; 
+                }
+                
+                if (star.currentScale > 0.01) {
+                    drawFlare(star.rx * canvas.width, star.ry * canvas.height, star.currentScale, notes[key].color);
+                }
             }
 
             requestAnimationFrame(animate);
