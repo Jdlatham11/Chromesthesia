@@ -1,1 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Flow of How We Know</title>
+    <style>
+        /* SCHOOLHOUSE ROCK AESTHETIC */
+        @import url('https://fonts.googleapis.com/css2?family=Shrikhand&family=Itim&display=swap');
 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: #f4ecd8; /* Vintage Parchment */
+            color: #2d2d2a;
+            font-family: 'Itim', cursive, sans-serif; /* Playful, handwritten font */
+            overflow-x: hidden;
+        }
+
+        .back-btn {
+            position: fixed; top: 20px; left: 20px;
+            color: #2d2d2a; text-decoration: none; font-size: 28px;
+            z-index: 1000; transition: transform 0.2s ease;
+            font-family: sans-serif; font-weight: bold;
+        }
+        .back-btn:hover { transform: translateX(-5px); }
+
+        /* THE STICKY SCROLL CONTAINERS */
+        .scrolly-section {
+            /* This makes the section very tall so you have room to scroll */
+            height: 400vh; 
+            position: relative;
+        }
+
+        .sticky-view {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        /* TYPOGRAPHY */
+        h1 {
+            font-family: 'Shrikhand', cursive; /* Chunky, retro display font */
+            font-size: 5vw;
+            color: #c14953; /* Faded Brick Red */
+            text-align: center;
+            text-shadow: 3px 3px 0px #2d2d2a;
+            position: absolute;
+            width: 100%;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .story-text {
+            font-size: 1.8rem;
+            max-width: 800px;
+            text-align: center;
+            line-height: 1.5;
+            padding: 20px;
+            position: absolute;
+            background: rgba(244, 236, 216, 0.9);
+            border: 4px solid #2d2d2a;
+            border-radius: 15px;
+            box-shadow: 8px 8px 0px #e6af2e; /* Mustard shadow */
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            z-index: 10;
+            opacity: 0; /* Hidden by default, JS reveals it */
+            transform: translateY(20px);
+        }
+
+        .year-stamp {
+            font-family: 'Shrikhand', cursive;
+            font-size: 3rem;
+            color: #3a5a80; /* Denim Blue */
+            text-shadow: 2px 2px 0px #2d2d2a;
+            margin-bottom: 20px;
+        }
+
+        /* SVG ARTWORK STYLING */
+        svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+
+        .thick-ink {
+            stroke: #2d2d2a;
+            stroke-width: 6;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* The Stream of Knowledge */
+        .knowledge-stream {
+            fill: none;
+            stroke: #3a5a80;
+            stroke-width: 35;
+            stroke-linecap: round;
+            opacity: 0.7;
+            /* Dash array sets up the "drawing" effect */
+            stroke-dasharray: 2000;
+            stroke-dashoffset: 2000; 
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        .stream-symbols {
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 24px;
+            fill: #f4ecd8;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Hiding elements for JS to reveal */
+        .scene-art { opacity: 0; transition: opacity 0.5s ease; }
+        
+        #text-1, #text-2, #text-3 { bottom: 10%; }
+        #text-1 { top: 15%; bottom: auto; } /* Specific positioning */
+
+        /* Scroll prompt */
+        .scroll-prompt {
+            position: absolute;
+            bottom: 20px;
+            font-family: 'Shrikhand', cursive;
+            font-size: 1.2rem;
+            color: #2d2d2a;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-btn">&#8592;</a>
+
+    <!-- SCENE 1: The Monopoly of Knowledge -->
+    <div class="scrolly-section" id="scene1">
+        <div class="sticky-view">
+            
+            <h1 id="main-title">THE FLOW OF HOW WE KNOW</h1>
+            <div class="scroll-prompt" id="prompt">Scroll Down ↓</div>
+
+            <!-- The Art: Affluent Man and Kids -->
+            <svg class="scene-art" id="art-1" viewBox="0 0 1000 600">
+                <!-- Shabby Kids (Left) -->
+                <path class="thick-ink" fill="#8e9aaf" d="M 150 500 Q 180 400 210 500 Z"/>
+                <circle class="thick-ink" fill="#f4ecd8" cx="180" cy="420" r="25"/>
+                <circle fill="#2d2d2a" cx="190" cy="415" r="4"/> <!-- Eye looking right -->
+                
+                <path class="thick-ink" fill="#b09e99" d="M 80 520 Q 110 440 140 520 Z"/>
+                <circle class="thick-ink" fill="#f4ecd8" cx="110" cy="455" r="20"/>
+                <circle fill="#2d2d2a" cx="118" cy="450" r="3"/> <!-- Eye looking right -->
+
+                <!-- Affluent Man (Right) -->
+                <!-- Body/Coat -->
+                <rect class="thick-ink" fill="#c14953" x="700" y="250" width="80" height="150" rx="20"/>
+                <!-- Ruffled Collar -->
+                <path class="thick-ink" fill="#ffffff" d="M 680 250 Q 740 300 800 250 Q 740 220 680 250 Z"/>
+                <!-- Head -->
+                <circle class="thick-ink" fill="#f4ecd8" cx="740" cy="200" r="40"/>
+                <!-- Top Hat -->
+                <rect class="thick-ink" fill="#2d2d2a" x="710" y="80" width="60" height="80"/>
+                <line class="thick-ink" x1="680" y1="160" x2="800" y2="160"/>
+                <!-- Monocle -->
+                <circle class="thick-ink" fill="#e6af2e" cx="720" cy="195" r="10"/>
+                <!-- Book in hands -->
+                <rect class="thick-ink" fill="#3a5a80" x="650" y="300" width="50" height="60" transform="rotate(-15 650 300)"/>
+                
+                <!-- The Stream of Knowledge (Hidden by CSS dashoffset initially) -->
+                <path id="stream-1" class="knowledge-stream" d="M -50 100 Q 300 300 500 150 T 780 200"/>
+                
+                <!-- Floating Math/Letters in Stream -->
+                <g class="stream-symbols" id="symbols-1">
+                    <text x="100" y="160">A</text>
+                    <text x="250" y="240">∑</text>
+                    <text x="450" y="180">∞</text>
+                    <text x="600" y="210">?</text>
+                </g>
+            </svg>
+
+            <!-- The Text -->
+            <div class="story-text" id="text-1">
+                You know…books, the written word, and literacy was a rare thing among the masses. It was a status symbol in society the world over. Vast amounts of man-hours dedicated to copying books by hand. Information was filtered through elites in society…
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SCENE 2: The Gutenberg Press -->
+    <div class="scrolly-section" id="scene2">
+        <div class="sticky-view">
+            
+            <svg class="scene-art" id="art-2" viewBox="0 0 1000 600">
+                <!-- Stack of Books (Left) -->
+                <!-- Book 1 -->
+                <polygon class="thick-ink" fill="#c14953" points="100,500 300,500 280,450 80,450"/>
+                <polygon class="thick-ink" fill="#ffffff" points="80,450 280,450 270,440 70,440"/>
+                <!-- Book 2 -->
+                <polygon class="thick-ink" fill="#3a5a80" points="120,440 290,440 310,380 140,380"/>
+                <polygon class="thick-ink" fill="#ffffff" points="140,380 310,380 300,370 130,370"/>
+                <!-- Book 3 -->
+                <polygon class="thick-ink" fill="#e6af2e" points="140,370 280,370 260,320 120,320"/>
+
+                <!-- Sketchy World Map (Right) -->
+                <!-- Americas -->
+                <path class="thick-ink" fill="#8e9aaf" opacity="0.5" d="M 500 200 Q 550 150 600 200 Q 550 300 600 350 Q 650 450 700 400 Q 680 300 620 250 Q 600 100 500 200 Z"/>
+                <!-- Europe/Africa -->
+                <path class="thick-ink" fill="#8e9aaf" opacity="0.5" d="M 750 150 Q 800 100 900 150 Q 850 250 950 300 Q 900 450 800 400 Q 850 300 750 250 Z"/>
+
+                <!-- Branching Trade Route Streams -->
+                <path id="stream-2a" class="knowledge-stream" stroke-width="15" d="M 200 400 Q 400 300 550 250 T 780 200"/>
+                <path id="stream-2b" class="knowledge-stream" stroke-width="15" d="M 200 400 Q 450 500 650 380 T 850 350"/>
+            </svg>
+
+            <!-- The Text -->
+            <div class="story-text" id="text-2">
+                <div class="year-stamp">The Gutenberg Press - 1440</div>
+                Until The Gutenberg Press was invented. This made knowledge attainable for the masses. It usurped the Elite’s and the Church’s monopoly on information, casting aside these early gatekeepers.
+            </div>
+
+            <div class="story-text" id="text-3">
+                It reshaped society completely. Law, religion, science. It was a Renaissance, with ideas, beliefs, knowledge, and culture no longer trapped within borders.
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // THE SCROLL ENGINE
+        // This calculates how far you have scrolled down each section 
+        // and updates the opacity and animation of the SVG elements.
+
+        window.addEventListener('scroll', () => {
+            
+            // --- SCENE 1 LOGIC ---
+            const scene1 = document.getElementById('scene1');
+            const rect1 = scene1.getBoundingClientRect();
+            // Calculate progress from 0 to 1 as we scroll through the section
+            let p1 = Math.max(0, Math.min(1, -rect1.top / (rect1.height - window.innerHeight)));
+
+            const title = document.getElementById('main-title');
+            const prompt = document.getElementById('prompt');
+            const text1 = document.getElementById('text-1');
+            const art1 = document.getElementById('art-1');
+            const stream1 = document.getElementById('stream-1');
+            const symbols1 = document.getElementById('symbols-1');
+
+            // Title fades in instantly, fades out at 15%
+            title.style.opacity = p1 < 0.15 ? 1 : 0;
+            title.style.transform = p1 < 0.15 ? 'translateY(0)' : 'translateY(-20px)';
+            prompt.style.opacity = p1 < 0.05 ? 1 : 0; // Hide scroll prompt once they start
+
+            // First text box and Characters fade in at 20%
+            if (p1 > 0.20 && p1 < 0.90) {
+                text1.style.opacity = 1; text1.style.transform = 'translateY(0)';
+                art1.style.opacity = 1;
+            } else {
+                text1.style.opacity = 0; text1.style.transform = 'translateY(20px)';
+                art1.style.opacity = 0;
+            }
+
+            // The Stream physically "draws" itself from left to right between 30% and 50% scroll
+            if (p1 > 0.3) {
+                let drawProgress = Math.min(1, (p1 - 0.3) / 0.2); // Maps 30%-50% to 0-1
+                stream1.style.strokeDashoffset = 2000 - (2000 * drawProgress);
+                symbols1.style.opacity = drawProgress > 0.5 ? 1 : 0; // Pop symbols in halfway through drawing
+            } else {
+                stream1.style.strokeDashoffset = 2000;
+                symbols1.style.opacity = 0;
+            }
+
+
+            // --- SCENE 2 LOGIC ---
+            const scene2 = document.getElementById('scene2');
+            const rect2 = scene2.getBoundingClientRect();
+            let p2 = Math.max(0, Math.min(1, -rect2.top / (rect2.height - window.innerHeight)));
+
+            const art2 = document.getElementById('art-2');
+            const text2 = document.getElementById('text-2');
+            const text3 = document.getElementById('text-3');
+            const stream2a = document.getElementById('stream-2a');
+            const stream2b = document.getElementById('stream-2b');
+
+            // Fade in Books and Map
+            art2.style.opacity = p2 > 0.1 && p2 < 0.9 ? 1 : 0;
+
+            // First Gutenberg Text
+            if (p2 > 0.15 && p2 < 0.5) {
+                text2.style.opacity = 1; text2.style.transform = 'translateY(0)';
+            } else {
+                text2.style.opacity = 0; text2.style.transform = 'translateY(20px)';
+            }
+
+            // Draw the branching streams across the map
+            if (p2 > 0.25) {
+                let drawProgress = Math.min(1, (p2 - 0.25) / 0.2);
+                stream2a.style.strokeDashoffset = 2000 - (2000 * drawProgress);
+                stream2b.style.strokeDashoffset = 2000 - (2000 * drawProgress);
+            } else {
+                stream2a.style.strokeDashoffset = 2000;
+                stream2b.style.strokeDashoffset = 2000;
+            }
+
+            // Final text replacing the first one
+            if (p2 > 0.55 && p2 < 0.95) {
+                text3.style.opacity = 1; text3.style.transform = 'translateY(0)';
+            } else {
+                text3.style.opacity = 0; text3.style.transform = 'translateY(20px)';
+            }
+        });
+    </script>
+</body>
+</html>
