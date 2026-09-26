@@ -13,7 +13,7 @@
 
         /* The Open Book */
         .book { width: 90vw; max-width: 800px; height: 60vh; background: #fdfbf7; border-radius: 8px; box-shadow: 0 20px 40px rgba(0,0,0,0.1), inset 0 0 40px rgba(0,0,0,0.02); display: flex; position: relative; }
-        .page { flex: 1; padding: 40px; position: relative; }
+        .page { flex: 1; padding: 40px; position: relative; overflow-y: auto; }
         .spine { position: absolute; left: 50%; top: 0; bottom: 0; width: 4px; background: linear-gradient(to right, rgba(0,0,0,0.02), rgba(0,0,0,0.1), rgba(0,0,0,0.02)); transform: translateX(-50%); box-shadow: -1px 0 5px rgba(0,0,0,0.02), 1px 0 5px rgba(0,0,0,0.02); }
         .page h2 { color: #475569; font-weight: 300; letter-spacing: 2px; margin-bottom: 30px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
         #signature-display { display: flex; flex-wrap: wrap; gap: 20px; }
@@ -73,7 +73,28 @@
         </div>
     </div>
 
-    <script>
+    <!-- Note the type="module" here, which allows us to import Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-database.js";
+
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYQMNlZnu9v1_B65jrVaMb9ni_FYgHTFc",
+            authDomain: "joeylabs.firebaseapp.com",
+            databaseURL: "https://joeylabs-default-rtdb.firebaseio.com/",
+            projectId: "joeylabs",
+            storageBucket: "joeylabs.firebasestorage.app",
+            messagingSenderId: "777020654577",
+            appId: "1:777020654577:web:fe6b72d571696afda6ba50",
+            measurementId: "G-H6PMTCG3J3"
+        };
+
+        // Initialize Firebase Backend
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const signaturesRef = ref(db, 'signatures');
+
         const modal = document.getElementById('paint-modal');
         const openBtn = document.getElementById('open-paint');
         const cancelBtn = document.getElementById('cancel-btn');
@@ -108,9 +129,8 @@
 
         function draw(e) {
             if (!isDrawing) return;
-            e.preventDefault(); // Prevents scrolling on touch screens
+            e.preventDefault(); 
             
-            // Get correct mouse/touch coordinates relative to canvas
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -137,18 +157,28 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
 
-        // Save Signature to Book
+        // 1. WATCH FIREBASE FOR NEW SIGNATURES
+        // Every time the page loads, or anyone saves a new signature, this runs automatically.
+        onChildAdded(signaturesRef, (data) => {
+            const signatureData = data.val();
+            const img = document.createElement('img');
+            img.src = signatureData.image;
+            img.className = 'signed-img';
+            display.appendChild(img);
+        });
+
+        // 2. SAVE SIGNATURE TO FIREBASE
         saveBtn.addEventListener('click', () => {
             // Convert canvas drawing to an image URL
             const dataURL = canvas.toDataURL('image/png');
             
-            // Create an image element and append it to the book
-            const img = document.createElement('img');
-            img.src = dataURL;
-            img.className = 'signed-img';
-            display.appendChild(img);
+            // Push the image directly to the cloud database
+            push(signaturesRef, {
+                image: dataURL,
+                timestamp: Date.now()
+            });
 
-            // Clear and close
+            // Clear the canvas and close the modal
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             modal.classList.remove('active');
         });
