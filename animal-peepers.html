@@ -173,29 +173,29 @@
     </div>
 
     <script>
-        // --- THE PERMANENT LIVE DATABASE ---
-        // We are now using Channel IDs. This automatically grabs whatever stream that channel is broadcasting right now. 
+       // --- THE PERMANENT LIVE DATABASE (TWITCH) ---
+        // Abandoning YouTube for Twitch. Twitch never rotates IDs and actively supports 24/7 embeds.
         const streams = [
             {
-                channelId: "UC8hC-Uq2_Y2d_g8GAKmB_YQ", 
-                title: "Kitten Academy Foster Cam",
-                location: "Illinois, USA",
-                source: "Kitten Academy",
-                desc: "A 24/7 live look at a foster home for kittens. Watch them play, sleep, and learn how to be cats before they are adopted out to their forever homes."
+                twitchChannel: "exploreorg", 
+                title: "Explore.org Wildlife Network",
+                location: "Global",
+                source: "Explore.org",
+                desc: "A rotating 24/7 live feed of rescue kittens, brown bears, and bald eagles. This channel switches cameras every few hours to show the most active animals."
             },
             {
-                channelId: "UC2O-BMB_oE5B9m6x21K6kSA",
+                twitchChannel: "montereyaq",
                 title: "Monterey Bay Live Feeds",
                 location: "Monterey Bay, California",
                 source: "Monterey Bay Aquarium",
-                desc: "A live feed from one of the world's most famous aquariums. Depending on the time of day, this stream will automatically tune into their sea otters, penguins, or the massive open-sea kelp forest."
+                desc: "A live feed from one of the world's most famous aquariums. Depending on the time of day, they stream sea otters, penguins, or the open-sea kelp forest."
             },
             {
-                channelId: "UC_hD_7-E-P2P3s_G3w2Lqxw",
-                title: "Georgia Aquarium Ocean Voyager",
-                location: "Atlanta, Georgia",
-                source: "Georgia Aquarium",
-                desc: "A live view into a 6.3-million-gallon indoor ocean. Keep an eye out for massive whale sharks and manta rays gliding directly past the camera."
+                twitchChannel: "marinemammalrescue",
+                title: "Marine Mammal Rescue",
+                location: "Vancouver, Canada",
+                source: "Ocean Wise",
+                desc: "A 24/7 live look at a rescue hospital for sick, injured, or orphaned marine mammals (primarily harbor seal pups) as they rehabilitate before being released."
             }
         ];
 
@@ -230,8 +230,9 @@
             sourceEl.innerText = selectedStream.source;
             descEl.innerText = selectedStream.desc;
 
-            // Update the YouTube iframe to use the permanent Channel Live link
-            videoPlayer.src = `https://www.youtube.com/embed/live_stream?channel=${selectedStream.channelId}&autoplay=1&mute=1`;
+            // Update the iframe to use the Twitch embed. 
+            // The "parent" parameters explicitly whitelist your custom domain and GitHub environments.
+            videoPlayer.src = `https://player.twitch.tv/?channel=${selectedStream.twitchChannel}&parent=joeylabs.lol&parent=jdlatham11.github.io&parent=localhost&autoplay=true&muted=true`;
         });
     </script>
 </body>
