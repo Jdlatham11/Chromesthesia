@@ -39,6 +39,39 @@
         button:hover { background: #f1f5f9; }
         .save-btn { background: #3b82f6; color: white; border-color: #2563eb; }
         .save-btn:hover { background: #2563eb; }
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            .book {
+                flex-direction: column;
+                height: 75vh;
+                width: 95vw;
+                border-radius: 8px;
+            }
+            .spine { display: none; } /* Removes the center book fold */
+            .page { padding: 20px; }
+            .pen-wrapper { 
+                right: 5%; 
+                top: -30px; 
+                transform: scale(0.8); 
+            }
+            .paint-box {
+                width: 95%;
+                padding: 10px;
+            }
+            #draw-canvas {
+                width: 100%;
+                height: 250px; /* Gives more vertical drawing room on phones */
+            }
+            .controls {
+                flex-direction: column; /* Stacks the MS Paint buttons */
+                gap: 10px;
+            }
+            .controls div {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
