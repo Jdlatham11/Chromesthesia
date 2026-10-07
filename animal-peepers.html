@@ -129,7 +129,29 @@
 
         .peeper-btn:hover { background: #27ae60; transform: translateY(2px); box-shadow: 2px 2px 0px #1e8449; }
         .peeper-btn:active { transform: translateY(4px); box-shadow: 0px 0px 0px #1e8449; }
-
+/* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; margin-top: 60px; text-align: center; }
+            .layout-container {
+                flex-direction: column;
+                height: auto;
+                width: 95%;
+                gap: 15px;
+            }
+            .info-panel {
+                border-radius: 15px; /* simplifies the sketchy border for vertical stacking */
+            }
+            .video-panel {
+                border-radius: 15px;
+                min-height: 30vh;
+            }
+            .peeper-btn {
+                font-size: 1.2rem;
+                padding: 12px 25px;
+                margin-bottom: 30px;
+            }
+            .tv-static { font-size: 1rem; text-align: center; padding: 10px; }
+        }
     </style>
 </head>
 <body>
