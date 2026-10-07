@@ -50,6 +50,19 @@
         .project-btn:hover {
             transform: translateY(-6px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08); color: #0f172a;
         }
+        @media (max-width: 768px) {
+            /* Adjust this class name to whatever container holds your buttons */
+            .project-container { 
+                flex-direction: column; 
+                align-items: center; 
+                gap: 15px;
+            }
+            .project-btn {
+                width: 80%; /* Makes buttons span the width of the phone */
+                text-align: center;
+                padding: 15px;
+            }
+        }
     </style>
 </head>
 <body>
