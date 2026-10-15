@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Philosopher Twitch Alert</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+            font-family: 'Georgia', serif;
+        }
+
+        .alert-wrapper {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 900px;
+            height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .alert-wrapper.active {
+            opacity: 1;
+        }
+
+        /* The master container that rolls out from bottom to center */
+        .scroll-container {
+            position: relative;
+            width: 850px;
+            height: 480px;
+            background-image: url('philosopher.png'); /* Your background image */
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            
+            /* Unrolling animation setup */
+            transform-origin: bottom center;
+            transform: scaleY(0) translateY(200px);
+            transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .alert-wrapper.active .scroll-container {
+            transform: scaleY(1) translateY(0);
+        }
+
+        /* Left Side Text: "A New Opponent Appears." */
+        .left-text-box {
+            position: absolute;
+            left: 70px;
+            top: 150px;
+            width: 250px;
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #3b220c;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.4);
+            line-height: 1.2;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease 0.8s, transform 0.8s ease 0.8s;
+        }
+
+        .alert-wrapper.active .left-text-box {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Follower Username over the Philosopher's face */
+        .username-overlay {
+            position: absolute;
+            right: 110px;
+            top: 75px;
+            width: 300px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #fcebc4;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(255, 215, 0, 0.6);
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.6s ease 1.2s, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 1.2s;
+        }
+
+        .alert-wrapper.active .username-overlay {
+            opacity: 1;
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="alertWrapper" class="alert-wrapper">
+        <div class="scroll-container">
+            <div class="left-text-box">A New Opponent Appears.</div>
+            <div id="usernameDisplay" class="username-overlay">ViewerName</div>
+        </div>
+    </div>
+
+    <script>
+        function triggerAlert(username) {
+            const wrapper = document.getElementById('alertWrapper');
+            const userDisplay = document.getElementById('usernameDisplay');
+            
+            userDisplay.textContent = username;
+            
+            // Trigger animation sequence
+            wrapper.classList.add('active');
+
+            // Optional: Insert your sound effect play code here
+            // const audio = new Audio('scroll-sound.mp3');
+            // audio.play();
+
+            // Hide alert after 7 seconds
+            setTimeout(() => {
+                wrapper.classList.remove('active');
+            }, 7000);
+        }
+
+        // URL Parameter listener so external tools or browser test hooks can push data easily
+        const urlParams = new URLSearchParams(window.location.search);
+        if(urlParams.has('test')) {
+            setTimeout(() => triggerAlert(urlParams.get('test')), 1000);
+        }
+    </script>
+</body>
+</html>
