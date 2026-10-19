@@ -11,21 +11,86 @@
 
         body {
             font-family: 'Nunito', sans-serif;
-            background: #fdfbf7;
+            background: linear-gradient(135deg, #d4f0d0 0%, #bae6fd 100%);
             color: #2d3436;
             height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             align-items: center;
             overflow: hidden;
-            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
-            background-size: 20px 20px;
+            position: relative;
+        }
+
+        /* --- MINIMALIST ANIMAL VECTOR ART BACKGROUND --- */
+        .bg-animals-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-animal {
+            position: absolute;
+            fill: none;
+            stroke: #1e293b;
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.16;
+            pointer-events: none;
+        }
+
+        .bg-bear {
+            top: 6%;
+            left: 4%;
+            width: 170px;
+            height: 170px;
+            transform: rotate(-10deg);
+        }
+
+        .bg-bird {
+            top: 5%;
+            right: 5%;
+            width: 160px;
+            height: 160px;
+            transform: rotate(8deg);
+        }
+
+        .bg-cat {
+            bottom: 5%;
+            left: 6%;
+            width: 180px;
+            height: 180px;
+            transform: rotate(6deg);
+        }
+
+        .bg-fish {
+            bottom: 6%;
+            right: 5%;
+            width: 170px;
+            height: 170px;
+            transform: rotate(-12deg);
+        }
+
+        .bg-paw {
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-6deg);
+            width: 220px;
+            height: 220px;
+            opacity: 0.10;
         }
 
         .back-btn {
             position: absolute; top: 20px; left: 20px;
             color: #2d3436; text-decoration: none; font-size: 28px;
             font-weight: bold; transition: transform 0.2s ease;
+            z-index: 10;
         }
         .back-btn:hover { transform: translateX(-5px); }
 
@@ -35,6 +100,8 @@
             margin-top: 20px;
             text-transform: uppercase;
             letter-spacing: 2px;
+            position: relative;
+            z-index: 1;
         }
 
         /* --- MAIN LAYOUT --- */
@@ -45,6 +112,8 @@
             height: 55vh;
             margin-top: 30px;
             gap: 20px;
+            position: relative;
+            z-index: 1;
         }
 
         /* --- LEFT SIDE: INFO PANEL --- */
@@ -78,30 +147,69 @@
             color: #475569;
         }
 
-        /* --- RIGHT SIDE: VIDEO PLAYER --- */
+        /* --- RIGHT SIDE: VIDEO PLAYER / PORTAL --- */
         .video-panel {
             flex: 2;
             background: #000;
+            background-image: repeating-radial-gradient(#222 0 0.0001%, #111 0 0.0002%) 50% 0/2500px 2500px, repeating-conic-gradient(#222 0 0.0001%, #111 0 0.0002%) 50% 50%/2500px 2500px;
+            background-blend-mode: difference;
             border: 4px solid #2d3436;
             border-radius: 8px 255px 5px 225px/255px 5px 225px 8px;
             box-shadow: 6px 6px 0px #94a3b8;
             position: relative;
             overflow: hidden;
-        }
-
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            padding: 20px;
         }
 
         .tv-static {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: repeating-radial-gradient(#222 0 0.0001%, #111 0 0.0002%) 50% 0/2500px 2500px, repeating-conic-gradient(#222 0 0.0001%, #111 0 0.0002%) 50% 50%/2500px 2500px;
-            background-blend-mode: difference;
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-family: 'Fredoka One', cursive; font-size: 1.5rem;
+            color: #ffffff;
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+            text-align: center;
             z-index: 10;
+            text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+        }
+
+        .launch-portal {
+            text-decoration: none;
+            color: #ffffff;
+            background: #2563eb;
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.4rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 16px 36px;
+            border: 3.5px solid #ffffff;
+            border-radius: 50px;
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.8), 4px 4px 0px #1d4ed8;
+            z-index: 15;
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            text-align: center;
+            animation: portalPulse 1.8s infinite alternate ease-in-out;
+        }
+
+        .launch-portal:hover {
+            transform: scale(1.06);
+            background: #3b82f6;
+            box-shadow: 0 0 35px rgba(59, 130, 246, 1), 5px 5px 0px #1d4ed8;
+        }
+
+        @keyframes portalPulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 15px rgba(37, 99, 235, 0.6), 0 0 5px #60a5fa;
+            }
+            100% {
+                transform: scale(1.05);
+                box-shadow: 0 0 32px rgba(96, 165, 250, 0.95), 0 0 15px #93c5fd;
+            }
         }
 
         /* --- LOWER THIRD BUTTON --- */
@@ -111,6 +219,8 @@
             align-items: center;
             justify-content: center;
             width: 100%;
+            position: relative;
+            z-index: 1;
         }
 
         .peeper-btn {
@@ -156,6 +266,54 @@
 </head>
 <body>
 
+    <!-- Minimalist Continuous-Line Animal Vector Art Background -->
+    <div class="bg-animals-wrapper" aria-hidden="true">
+        <!-- Bear -->
+        <svg class="bg-animal bg-bear" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <path d="M25,50 C20,38 30,25 42,32 C50,26 70,26 78,32 C90,25 100,38 95,50 C104,65 100,85 85,96 C75,103 45,103 35,96 C20,85 16,65 25,50 Z" />
+            <path d="M48,68 C52,65 68,65 72,68 C74,76 66,84 60,84 C54,84 46,76 48,68 Z" />
+            <path d="M56,71 L64,71 L60,76 Z" fill="#1e293b" />
+            <circle cx="42" cy="54" r="2.5" fill="#1e293b" />
+            <circle cx="78" cy="54" r="2.5" fill="#1e293b" />
+        </svg>
+
+        <!-- Bird in flight -->
+        <svg class="bg-animal bg-bird" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15,70 Q45,25 80,45 Q95,30 110,40 Q98,52 95,65 Q80,85 45,78 Q25,95 15,70 Z" />
+            <path d="M45,62 Q65,40 85,55" />
+            <circle cx="92" cy="46" r="2" fill="#1e293b" />
+        </svg>
+
+        <!-- Cat -->
+        <svg class="bg-animal bg-cat" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <path d="M40,95 Q38,65 48,50 L42,30 L58,40 Q68,38 78,40 L94,30 L88,50 Q98,65 96,95 Z" />
+            <path d="M48,50 Q68,65 88,50" />
+            <circle cx="56" cy="46" r="2" fill="#1e293b" />
+            <circle cx="80" cy="46" r="2" fill="#1e293b" />
+            <path d="M68,52 L68,58" />
+            <path d="M35,62 L20,60 M35,66 L18,68 M101,62 L116,60 M101,66 L118,68" />
+        </svg>
+
+        <!-- Fish -->
+        <svg class="bg-animal bg-fish" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20,60 Q50,25 90,60 Q50,95 20,60 Z" />
+            <path d="M90,60 L115,40 Q105,60 115,80 Z" />
+            <path d="M50,42 Q60,30 70,42" />
+            <path d="M55,78 Q62,88 70,78" />
+            <circle cx="35" cy="54" r="2" fill="#1e293b" />
+            <path d="M45,52 Q50,60 45,68" />
+        </svg>
+
+        <!-- Animal Paw / Watermark -->
+        <svg class="bg-animal bg-paw" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="60" cy="72" rx="22" ry="16" />
+            <ellipse cx="38" cy="46" rx="8" ry="12" transform="rotate(-15 38 46)" />
+            <ellipse cx="54" cy="38" rx="8" ry="12" />
+            <ellipse cx="70" cy="38" rx="8" ry="12" />
+            <ellipse cx="86" cy="46" rx="8" ry="12" transform="rotate(15 86 46)" />
+        </svg>
+    </div>
+
     <a href="index.html" class="back-btn">&#8592;</a>
 
     <h1>Animal Peepers</h1>
@@ -183,10 +341,10 @@
             </div>
         </div>
 
-        <!-- Right Side: Video -->
+        <!-- Right Side: Video Panel Portal -->
         <div class="video-panel">
             <div class="tv-static" id="tv-static">PRESS BUTTON TO TUNE IN</div>
-            <iframe id="video-player" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <a id="stream-link" href="#" target="_blank" class="launch-portal" style="display:none;">LAUNCH LIVE STREAM</a>
         </div>
     </div>
 
@@ -195,36 +353,56 @@
     </div>
 
     <script>
-       // --- THE PERMANENT LIVE DATABASE (TWITCH) ---
-        // Abandoning YouTube for Twitch. Twitch never rotates IDs and actively supports 24/7 embeds.
+        // --- DIRECT EXPLORE.ORG LIVE FEEDS ---
         const streams = [
             {
-                twitchChannel: "exploreorg", 
-                title: "Explore.org Wildlife Network",
-                location: "Global",
+                title: "Brooks Falls Brown Bears",
+                location: "Katmai National Park, AK",
                 source: "Explore.org",
-                desc: "A rotating 24/7 live feed of rescue kittens, brown bears, and bald eagles. This channel switches cameras every few hours to show the most active animals."
+                url: "https://explore.org/livecams/brown-bears/brown-bear-salmon-cam-brooks-falls",
+                desc: "Watch massive brown bears snatching salmon out of the air as they jump up the waterfall."
             },
             {
-                twitchChannel: "montereyaq",
-                title: "Monterey Bay Live Feeds",
-                location: "Monterey Bay, California",
-                source: "Monterey Bay Aquarium",
-                desc: "A live feed from one of the world's most famous aquariums. Depending on the time of day, they stream sea otters, penguins, or the open-sea kelp forest."
+                title: "Kitten Rescue Sanctuary",
+                location: "Los Angeles, CA",
+                source: "Explore.org",
+                url: "https://explore.org/livecams/cats/kitten-rescue-cam",
+                desc: "A 24/7 live look at a foster home for rescued kittens waiting for adoption."
             },
             {
-                twitchChannel: "marinemammalrescue",
-                title: "Marine Mammal Rescue",
-                location: "Vancouver, Canada",
-                source: "Ocean Wise",
-                desc: "A 24/7 live look at a rescue hospital for sick, injured, or orphaned marine mammals (primarily harbor seal pups) as they rehabilitate before being released."
+                title: "African River Wildlife",
+                location: "Mpumalanga, South Africa",
+                source: "Explore.org",
+                url: "https://explore.org/livecams/african-wildlife/african-river-wildlife-camera",
+                desc: "A live watering hole in Africa. Watch for elephants, hippos, and lions coming down for a drink."
+            },
+            {
+                title: "Decorah Bald Eagles",
+                location: "Decorah, Iowa",
+                source: "Explore.org",
+                url: "https://explore.org/livecams/bald-eagles/decorah-eagles",
+                desc: "A high-definition look directly inside the massive nest of a wild bald eagle family."
+            },
+            {
+                title: "Hawaii Monk Seals",
+                location: "Kona, Hawaii",
+                source: "Explore.org",
+                url: "https://explore.org/livecams/oceans/hawaii-monk-seal-cam",
+                desc: "An underwater camera capturing critically endangered Hawaiian monk seals and tropical fish."
+            },
+            {
+                title: "Great Dane Service Dogs",
+                location: "Ipswich, MA",
+                source: "Explore.org",
+                url: "https://explore.org/livecams/dogs/service-dog-project",
+                desc: "Watch Great Dane puppies train to become mobility assistance service dogs."
             }
         ];
 
         // --- THE LOGIC ---
         const tuneBtn = document.getElementById('tune-btn');
         const staticScreen = document.getElementById('tv-static');
-        const videoPlayer = document.getElementById('video-player');
+        const streamLink = document.getElementById('stream-link');
         
         const titleEl = document.getElementById('stream-title');
         const locationEl = document.getElementById('stream-location');
@@ -234,10 +412,10 @@
         let lastStreamIndex = -1;
 
         tuneBtn.addEventListener('click', () => {
-            // Hide the static screen
-            staticScreen.style.display = 'none';
+            // Update the #tv-static text to say "SIGNAL FOUND" instead of hiding it completely
+            staticScreen.innerText = "SIGNAL FOUND";
 
-            // Pick a random stream (making sure it's not the exact same one twice in a row)
+            // Pick a random stream (strictly guaranteeing a new stream with no back-to-back duplicates)
             let randomIndex;
             do {
                 randomIndex = Math.floor(Math.random() * streams.length);
@@ -252,9 +430,9 @@
             sourceEl.innerText = selectedStream.source;
             descEl.innerText = selectedStream.desc;
 
-            // Update the iframe to use the Twitch embed. 
-            // The "parent" parameters explicitly whitelist your custom domain and GitHub environments.
-            videoPlayer.src = `https://player.twitch.tv/?channel=${selectedStream.twitchChannel}&parent=joeylabs.lol&parent=jdlatham11.github.io&parent=localhost&autoplay=true&muted=true`;
+            // Update the portal link and display it directly below the signal text
+            streamLink.href = selectedStream.url;
+            streamLink.style.display = 'inline-block';
         });
     </script>
 </body>

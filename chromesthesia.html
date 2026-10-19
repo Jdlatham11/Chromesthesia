@@ -9,8 +9,8 @@
         * { box-sizing: border-box; user-select: none; touch-action: none; }
         
         body {
-            margin: 0; height: 100vh;
-            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            margin: 0; height: 100dvh;
+            background: #000000;
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
             padding-bottom: 50px; font-family: sans-serif;
             overflow: hidden; position: relative;
@@ -56,19 +56,46 @@
         .row { display: flex; gap: 16px; justify-content: center; }
         
         .pad {
-            width: 68px; height: 68px; border-radius: 50%;
+            width: min(12vw, 8vh, 68px); height: min(12vw, 8vh, 68px); border-radius: 50%;
             border: 2px solid rgba(255, 255, 255, 0.15); color: rgba(255, 255, 255, 0.4);
             display: flex; align-items: center; justify-content: center;
-            font-size: 19px; font-weight: 600; background: rgba(18, 18, 18, 0.6);
+            font-size: min(19px, 3vh, 4vw); font-weight: 600; background: rgba(18, 18, 18, 0.6);
             backdrop-filter: blur(4px); transition: transform 0.08s ease, background 0.08s ease;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); cursor: pointer;
+            position: relative;
         }
-        
-        .pad.spacer { visibility: hidden; width: 34px; }
         
         .pad.active {
             background: #ffffff; color: #121212; border-color: #ffffff;
             box-shadow: 0 0 25px rgba(255, 255, 255, 0.8); transform: scale(0.92);
+        }
+
+        .ripple-effect {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            pointer-events: none;
+            box-sizing: border-box;
+            animation: padRipple 0.6s ease-out forwards;
+        }
+
+        @keyframes padRipple {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+        }
+
+        /* Dynamic adjustments for short viewports (e.g. desktop browsers with toolbars/bookmarks) */
+        @media (max-height: 700px) {
+            body { padding-bottom: 20px; }
+            .ui-container { gap: 14px; }
+            .keyboard { gap: 8px; }
         }
 
         /* --- THE PORTRAIT LOCK SCREEN --- */
@@ -90,11 +117,85 @@
 
         /* Adjust sizing for mobile landscape view so everything fits perfectly */
         @media (max-height: 500px) and (orientation: landscape) {
-            body { padding-bottom: 20px; }
-            .pad { width: 50px; height: 50px; font-size: 16px; }
-            .pad.spacer { width: 25px; }
-            .ui-container { gap: 12px; }
+            body { padding-bottom: 15px; }
+            .pad { width: min(10vw, 9vh, 50px); height: min(10vw, 9vh, 50px); font-size: 14px; }
+            .ui-container { gap: 10px; }
             .back-btn { top: 15px; left: 15px; font-size: 24px; }
+        }
+
+        /* --- MODE TOGGLE & 36-KEY VIRTUAL PIANO --- */
+        #mode-toggle {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            padding: 8px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s ease;
+        }
+        #mode-toggle:hover {
+            background: rgba(255, 255, 255, 0.9);
+            color: #121212;
+            border-color: #ffffff;
+        }
+
+        #piano-container {
+            display: none;
+            align-items: flex-start;
+            justify-content: center;
+            position: relative;
+            z-index: 10;
+            padding: 6px;
+            background: rgba(10, 10, 14, 0.75);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            max-width: 96vw;
+        }
+
+        .white-key {
+            width: clamp(22px, 3.8vw, 40px);
+            height: clamp(110px, 20vh, 170px);
+            background: #ffffff;
+            border: 1px solid #000000;
+            border-radius: 0 0 6px 6px;
+            z-index: 1;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), inset 0 -4px 6px rgba(0, 0, 0, 0.12);
+            transition: transform 0.05s ease, background 0.05s ease, box-shadow 0.05s ease;
+            flex-shrink: 0;
+        }
+
+        .white-key.active {
+            background: #e2e8f0;
+            transform: translateY(2px);
+            box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.45);
+        }
+
+        .black-key {
+            width: clamp(14px, 2.3vw, 24px);
+            height: clamp(68px, 12.5vh, 106px);
+            background: #141414;
+            border: 1px solid #000000;
+            border-radius: 0 0 4px 4px;
+            margin-left: calc(clamp(14px, 2.3vw, 24px) * -0.5);
+            margin-right: calc(clamp(14px, 2.3vw, 24px) * -0.5);
+            z-index: 2;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.6), inset 0 -3px 4px rgba(255, 255, 255, 0.1);
+            transition: transform 0.05s ease, background 0.05s ease, box-shadow 0.05s ease;
+            flex-shrink: 0;
+        }
+
+        .black-key.active {
+            background: #333333;
+            transform: translateY(2px);
+            box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.85);
         }
     </style>
 </head>
@@ -107,8 +208,10 @@
     <canvas id="visualizer"></canvas>
 
     <div class="ui-container">
+        <button id="mode-toggle">Switch to Keyboard Mode</button>
+
         <div class="patch-selector">
-            <button class="patch-btn active" data-patch="cosmos">Cosmos</button>
+            <button class="patch-btn active" data-patch="rhodes">Rhodes</button>
             <button class="patch-btn" data-patch="saw">Neon Saw</button>
             <button class="patch-btn" data-patch="ghost">Ghost Choir</button>
             <button class="patch-btn" data-patch="pluck">8-Bit Pluck</button>
@@ -121,35 +224,129 @@
 
         <div class="keyboard">
             <div class="row">
-                <div class="pad" data-key="w">W</div><div class="pad" data-key="e">E</div>
-                <div class="pad spacer"></div>
-                <div class="pad" data-key="t">T</div><div class="pad" data-key="y">Y</div><div class="pad" data-key="u">U</div>
-                <div class="pad spacer"></div>
-                <div class="pad" data-key="o">O</div>
+                <div class="pad" data-key="w">W</div>
+                <div class="pad" data-key="e">E</div>
+                <div class="pad" data-key="t">T</div>
+                <div class="pad" data-key="y">Y</div>
+                <div class="pad" data-key="u">U</div>
             </div>
             <div class="row">
-                <div class="pad" data-key="a">A</div><div class="pad" data-key="s">S</div><div class="pad" data-key="d">D</div>
-                <div class="pad" data-key="f">F</div><div class="pad" data-key="g">G</div><div class="pad" data-key="h">H</div><div class="pad" data-key="j">J</div>
+                <div class="pad" data-key="a">A</div>
+                <div class="pad" data-key="s">S</div>
+                <div class="pad" data-key="d">D</div>
+                <div class="pad" data-key="f">F</div>
+                <div class="pad" data-key="g">G</div>
+                <div class="pad" data-key="h">H</div>
+                <div class="pad" data-key="j">J</div>
+                <div class="pad" data-key="k">K</div>
             </div>
         </div>
+
+        <div id="piano-container" style="display: none;"></div>
     </div>
 
     <script>
         const notes = {
-            'a': { freq: 261.63, color: '#ff2a2a' }, 
-            'w': { freq: 277.18, color: '#ff5e2a' }, 
-            's': { freq: 293.66, color: '#ffaa00' }, 
-            'e': { freq: 311.13, color: '#d4c919' }, 
-            'd': { freq: 329.63, color: '#84e527' }, 
-            'f': { freq: 349.23, color: '#27e57c' }, 
-            't': { freq: 369.99, color: '#27e5d4' }, 
-            'g': { freq: 392.00, color: '#1a75ff' }, 
-            'y': { freq: 415.30, color: '#5e1aff' }, 
-            'h': { freq: 440.00, color: '#b829ff' }, 
-            'u': { freq: 466.16, color: '#ff29d4' }, 
-            'j': { freq: 493.88, color: '#ff5e5e' }, 
-            'o': { freq: 523.25, color: '#ffffff' }  
+            'a': { name: 'C', semitone: 0, freq: 261.63, color: '#ff2a2a' }, 
+            'w': { name: 'C#/Db', semitone: 1, freq: 277.18, color: '#ff5e2a' }, 
+            's': { name: 'D', semitone: 2, freq: 293.66, color: '#ffaa00' }, 
+            'e': { name: 'D#/Eb', semitone: 3, freq: 311.13, color: '#d4c919' }, 
+            'd': { name: 'E', semitone: 4, freq: 329.63, color: '#84e527' }, 
+            'f': { name: 'F', semitone: 5, freq: 349.23, color: '#27e57c' }, 
+            't': { name: 'F#/Gb', semitone: 6, freq: 369.99, color: '#27e5d4' }, 
+            'g': { name: 'G', semitone: 7, freq: 392.00, color: '#1a75ff' }, 
+            'y': { name: 'G#/Ab', semitone: 8, freq: 415.30, color: '#5e1aff' }, 
+            'h': { name: 'A', semitone: 9, freq: 440.00, color: '#b829ff' }, 
+            'u': { name: 'A#/Bb', semitone: 10, freq: 466.16, color: '#ff29d4' }, 
+            'j': { name: 'B', semitone: 11, freq: 493.88, color: '#ff5e5e' }, 
+            'k': { name: 'C', semitone: 12, freq: 523.25, color: '#ffffff' }  
         };
+
+        const pitchMeta = [
+            { name: 'C', color: '#ff2a2a', isBlack: false },
+            { name: 'C#/Db', color: '#ff5e2a', isBlack: true },
+            { name: 'D', color: '#ffaa00', isBlack: false },
+            { name: 'D#/Eb', color: '#d4c919', isBlack: true },
+            { name: 'E', color: '#84e527', isBlack: false },
+            { name: 'F', color: '#27e57c', isBlack: false },
+            { name: 'F#/Gb', color: '#27e5d4', isBlack: true },
+            { name: 'G', color: '#1a75ff', isBlack: false },
+            { name: 'G#/Ab', color: '#5e1aff', isBlack: true },
+            { name: 'A', color: '#b829ff', isBlack: false },
+            { name: 'A#/Bb', color: '#ff29d4', isBlack: true },
+            { name: 'B', color: '#ff5e5e', isBlack: false }
+        ];
+
+        function getNoteMeta(id) {
+            if (notes[id]) return notes[id];
+            const midiNum = typeof id === 'number' ? id : parseInt(String(id).replace('midi_', ''), 10);
+            if (!isNaN(midiNum)) {
+                const pm = pitchMeta[((midiNum % 12) + 12) % 12];
+                return {
+                    name: pm.name,
+                    semitone: midiNum - 60,
+                    freq: 440 * Math.pow(2, (midiNum - 69) / 12),
+                    color: pm.color
+                };
+            }
+            return null;
+        }
+
+        function identifyChord(activeKeysArray) {
+            if (!activeKeysArray || activeKeysArray.length === 0) return '';
+            const sortedKeys = [...activeKeysArray]
+                .filter(k => getNoteMeta(k))
+                .sort((a, b) => getNoteMeta(a).semitone - getNoteMeta(b).semitone);
+
+            if (sortedKeys.length === 0) return '';
+            if (sortedKeys.length === 1) return getNoteMeta(sortedKeys[0]).name;
+            if (sortedKeys.length === 2) {
+                return `${getNoteMeta(sortedKeys[0]).name} - ${getNoteMeta(sortedKeys[1]).name}`;
+            }
+
+            // 3 or more keys: calculate semitone intervals relative to lowest pressed note
+            const root = getNoteMeta(sortedKeys[0]);
+            const uniqueIntervals = [...new Set(sortedKeys.map(k => getNoteMeta(k).semitone - root.semitone))];
+            const baseIntervals = uniqueIntervals.filter(i => i < 12);
+            const intervalSet = new Set(baseIntervals);
+
+            if (intervalSet.has(0) && intervalSet.has(4) && intervalSet.has(7) && baseIntervals.length === 3) {
+                return `${root.name} Major`;
+            }
+            if (intervalSet.has(0) && intervalSet.has(3) && intervalSet.has(7) && baseIntervals.length === 3) {
+                return `${root.name} Minor`;
+            }
+            if (intervalSet.has(0) && intervalSet.has(3) && intervalSet.has(6) && baseIntervals.length === 3) {
+                return `${root.name} Diminished`;
+            }
+            if (intervalSet.has(0) && intervalSet.has(4) && intervalSet.has(8) && baseIntervals.length === 3) {
+                return `${root.name} Augmented`;
+            }
+
+            // Triads with octave doubling (e.g. [0, 4, 7, 12])
+            if (uniqueIntervals.includes(12)) {
+                if (intervalSet.has(0) && intervalSet.has(4) && intervalSet.has(7) && baseIntervals.length === 3) return `${root.name} Major`;
+                if (intervalSet.has(0) && intervalSet.has(3) && intervalSet.has(7) && baseIntervals.length === 3) return `${root.name} Minor`;
+                if (intervalSet.has(0) && intervalSet.has(3) && intervalSet.has(6) && baseIntervals.length === 3) return `${root.name} Diminished`;
+                if (intervalSet.has(0) && intervalSet.has(4) && intervalSet.has(8) && baseIntervals.length === 3) return `${root.name} Augmented`;
+            }
+
+            // Triad inversions
+            const pitchClasses = [...new Set(sortedKeys.map(k => ((getNoteMeta(k).semitone % 12) + 12) % 12))];
+            if (pitchClasses.length === 3) {
+                for (let k of sortedKeys) {
+                    const meta = getNoteMeta(k);
+                    const rPitch = ((meta.semitone % 12) + 12) % 12;
+                    const rel = pitchClasses.map(p => (p - rPitch + 12) % 12).sort((a, b) => a - b);
+                    if (rel[0] === 0 && rel[1] === 4 && rel[2] === 7) return `${meta.name} Major`;
+                    if (rel[0] === 0 && rel[1] === 3 && rel[2] === 7) return `${meta.name} Minor`;
+                    if (rel[0] === 0 && rel[1] === 3 && rel[2] === 6) return `${meta.name} Diminished`;
+                    if (rel[0] === 0 && rel[1] === 4 && rel[2] === 8) return `${meta.name} Augmented`;
+                }
+            }
+
+            return 'Custom Chord';
+        }
 
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         let audioCtx, masterGain, convolver;
@@ -157,7 +354,7 @@
         const currentlyHeldKeys = new Set();
         
         let globalVolume = 0.5;
-        let currentPatch = 'cosmos';
+        let currentPatch = 'rhodes';
 
         document.querySelectorAll('.patch-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -195,24 +392,68 @@
             masterGain.connect(audioCtx.destination);
         }
 
-        function playNote(key) {
+        function playNote(keyOrFreq, customId) {
             initAudio();
-            if (activeOscillators[key] || !notes[key]) return;
+            let voiceId, freq;
+            if (typeof keyOrFreq === 'number') {
+                freq = keyOrFreq;
+                voiceId = customId !== undefined ? customId : `freq_${freq.toFixed(2)}`;
+            } else {
+                if (!notes[keyOrFreq]) return;
+                freq = notes[keyOrFreq].freq;
+                voiceId = keyOrFreq;
+            }
+            if (activeOscillators[voiceId]) return;
             
             const osc1 = audioCtx.createOscillator();
             const osc2 = audioCtx.createOscillator();
+            let osc3 = null;
             const gainNode = audioCtx.createGain();
             const filter = audioCtx.createBiquadFilter();
 
-            const freq = notes[key].freq;
             const now = audioCtx.currentTime;
 
-            if (currentPatch === 'cosmos') {
-                osc1.type = 'triangle'; osc2.type = 'sine';
-                osc1.frequency.value = freq; osc2.frequency.value = freq + 1.2;
-                gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(0.25, now + 0.3);
-                filter.type = 'lowpass'; filter.frequency.value = 900;
+            if (currentPatch === 'rhodes') {
+                osc3 = audioCtx.createOscillator();
+
+                osc1.type = 'sine';
+                osc2.type = 'sine';
+                osc3.type = 'sine';
+
+                osc1.frequency.value = freq;
+                osc2.frequency.value = freq * 2;
+                osc3.frequency.value = freq * 4.14;
+
+                const gain1 = audioCtx.createGain();
+                const gain2 = audioCtx.createGain();
+                const gain3 = audioCtx.createGain();
+
+                // Base tone lingers
+                gain1.gain.setValueAtTime(0.001, now);
+                gain1.gain.exponentialRampToValueAtTime(0.28, now + 0.015);
+                gain1.gain.exponentialRampToValueAtTime(0.08, now + 2.5);
+
+                // First overtone decays rapidly within 0.3s
+                gain2.gain.setValueAtTime(0.001, now);
+                gain2.gain.exponentialRampToValueAtTime(0.16, now + 0.01);
+                gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+                // Metallic "tine" strike transient decays rapidly within 0.3s
+                gain3.gain.setValueAtTime(0.001, now);
+                gain3.gain.exponentialRampToValueAtTime(0.12, now + 0.005);
+                gain3.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+
+                gainNode.gain.setValueAtTime(1.0, now);
+                filter.type = 'lowpass';
+                filter.frequency.value = 3200;
+
+                osc1.connect(gain1);
+                osc2.connect(gain2);
+                osc3.connect(gain3);
+
+                gain1.connect(filter);
+                gain2.connect(filter);
+                gain3.connect(filter);
             } 
             else if (currentPatch === 'saw') {
                 osc1.type = 'sawtooth'; osc2.type = 'sawtooth';
@@ -221,6 +462,7 @@
                 gainNode.gain.linearRampToValueAtTime(0.15, now + 0.1);
                 filter.type = 'lowpass'; filter.frequency.value = 2500;
                 filter.frequency.exponentialRampToValueAtTime(500, now + 0.5);
+                osc1.connect(filter); osc2.connect(filter);
             }
             else if (currentPatch === 'ghost') {
                 osc1.type = 'sine'; osc2.type = 'sine';
@@ -228,6 +470,7 @@
                 gainNode.gain.setValueAtTime(0, now);
                 gainNode.gain.linearRampToValueAtTime(0.25, now + 0.8); 
                 filter.type = 'lowpass'; filter.frequency.value = 800;
+                osc1.connect(filter); osc2.connect(filter);
             }
             else if (currentPatch === 'pluck') {
                 osc1.type = 'square'; osc2.type = 'square';
@@ -236,18 +479,19 @@
                 gainNode.gain.linearRampToValueAtTime(0.2, now + 0.05); 
                 gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.6); 
                 filter.type = 'lowpass'; filter.frequency.value = 1500;
+                osc1.connect(filter); osc2.connect(filter);
             }
 
-            osc1.connect(filter); osc2.connect(filter); 
             filter.connect(gainNode); gainNode.connect(masterGain);
             osc1.start(); osc2.start();
+            if (osc3) osc3.start();
             
-            activeOscillators[key] = { osc1, osc2, gainNode };
+            activeOscillators[voiceId] = { osc1, osc2, osc3, gainNode };
         }
 
-        function stopNote(key) {
-            if (!activeOscillators[key]) return;
-            const { osc1, osc2, gainNode } = activeOscillators[key];
+        function stopNote(voiceId) {
+            if (!activeOscillators[voiceId]) return;
+            const { osc1, osc2, osc3, gainNode } = activeOscillators[voiceId];
             const now = audioCtx.currentTime;
             
             gainNode.gain.cancelScheduledValues(now);
@@ -257,7 +501,8 @@
             gainNode.gain.linearRampToValueAtTime(0.0001, now + releaseTime);
             
             osc1.stop(now + releaseTime); osc2.stop(now + releaseTime);
-            delete activeOscillators[key];
+            if (osc3) osc3.stop(now + releaseTime);
+            delete activeOscillators[voiceId];
         }
 
         function hexToRgb(hex) {
@@ -269,24 +514,100 @@
 
         const canvas = document.getElementById('visualizer');
         const ctx = canvas.getContext('2d');
+        const milkyWayCanvas = document.createElement('canvas');
+        const mwCtx = milkyWayCanvas.getContext('2d');
         
         let sortedKeys = Object.keys(notes).sort((a, b) => notes[a].freq - notes[b].freq);
         let keyPositions = {};
+        const midiFlares = [];
         
         let chordCore = { r: 255, g: 255, b: 255, scale: 0 };
+        let lastChordText = '';
+        const centerRipples = [];
+        const confettiParticles = [];
 
         function resizeCanvas() { 
             canvas.width = window.innerWidth; canvas.height = window.innerHeight; 
+            milkyWayCanvas.width = canvas.width;
+            milkyWayCanvas.height = canvas.height;
+
+            // Pre-render static Milky Way background onto offscreen canvas
+            // Diagonal gradient perpendicular to the bottom-left -> top-right dust band
+            const grad = mwCtx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            grad.addColorStop(0.0, '#000000');
+            grad.addColorStop(0.28, '#000000');
+            grad.addColorStop(0.38, '#1a0f0a');
+            grad.addColorStop(0.45, '#2a1610');
+            grad.addColorStop(0.5, '#d4a238'); // Bright gold galactic core
+            grad.addColorStop(0.55, '#2a1610');
+            grad.addColorStop(0.62, '#1a0f0a');
+            grad.addColorStop(0.72, '#000000');
+            grad.addColorStop(1.0, '#000000');
+
+            mwCtx.fillStyle = grad;
+            mwCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Overlay dark cosmic dust rifts along the core so the gold core glows organically
+            const coreRift = mwCtx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            coreRift.addColorStop(0.0, 'rgba(0, 0, 0, 0)');
+            coreRift.addColorStop(0.47, 'rgba(26, 15, 10, 0.75)');
+            coreRift.addColorStop(0.5, 'rgba(42, 22, 16, 0.55)');
+            coreRift.addColorStop(0.53, 'rgba(26, 15, 10, 0.75)');
+            coreRift.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+            mwCtx.fillStyle = coreRift;
+            mwCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Procedurally generate 900+ static micro-stars clustered along the diagonal dust lane
+            const numMicroStars = 950;
+            for (let i = 0; i < numMicroStars; i++) {
+                // Position along the bottom-left to top-right diagonal (t from 0 to 1)
+                const t = Math.random();
+                const baseX = t * canvas.width;
+                const baseY = (1 - t) * canvas.height;
+
+                // Gaussian-like spread perpendicular to the diagonal dust lane
+                const u1 = Math.max(0.0001, Math.random());
+                const u2 = Math.random();
+                const normalRand = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+                const bandSpread = Math.min(canvas.width, canvas.height) * 0.16;
+
+                const sx = baseX + normalRand * bandSpread;
+                const sy = baseY + normalRand * bandSpread;
+
+                const distFactor = Math.exp(-(normalRand * normalRand) * 0.45);
+                mwCtx.save();
+                mwCtx.globalAlpha = Math.min(1, (0.15 + Math.random() * 0.85) * (0.3 + 0.7 * distFactor));
+
+                const starColors = ['#ffffff', '#fff6e0', '#ffd899', '#fffae8'];
+                mwCtx.fillStyle = starColors[Math.floor(Math.random() * starColors.length)];
+                const radius = Math.random() * 1.3 + 0.25;
+                mwCtx.beginPath();
+                mwCtx.arc(sx, sy, radius, 0, Math.PI * 2);
+                mwCtx.fill();
+                mwCtx.restore();
+            }
             
             sortedKeys.forEach((key, index) => {
                 let progress = index / (sortedKeys.length - 1); 
-                let archY = 0.8 - (Math.pow(progress, 1.5) * 0.6);
-                keyPositions[key] = {
-                    rx: 0.15 + (progress * 0.7), 
-                    baseRy: archY,
-                    currentRy: archY,
-                    currentScale: 0
-                };
+                let x = canvas.width * (0.12 + (progress * 0.76));
+                let baseY = canvas.height * 0.85;
+                let ceilingY = canvas.height * 0.2;
+
+                if (!keyPositions[key]) {
+                    keyPositions[key] = {
+                        x: x,
+                        y: baseY,
+                        baseY: baseY,
+                        ceilingY: ceilingY,
+                        vy: -4.5,
+                        scale: 0,
+                        hasExploded: false
+                    };
+                } else {
+                    keyPositions[key].x = x;
+                    keyPositions[key].baseY = baseY;
+                    keyPositions[key].ceilingY = ceilingY;
+                }
             });
         }
         window.addEventListener('resize', resizeCanvas); resizeCanvas();
@@ -347,6 +668,9 @@
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.drawImage(milkyWayCanvas, 0, 0);
+
             ctx.globalCompositeOperation = 'lighter'; 
 
             bgStars.forEach(star => {
@@ -381,19 +705,24 @@
 
             ctx.globalCompositeOperation = 'lighter';
 
+            // Active keys & Chord Recognition
             let activeArr = Array.from(currentlyHeldKeys);
             let targetScale = 0;
             let tr = 0, tg = 0, tb = 0;
 
             if (activeArr.length > 0) {
-                targetScale = 1 + (activeArr.length * 0.35); 
+                targetScale = 1 + (activeArr.length * 0.25); 
                 activeArr.forEach(key => {
-                    let rgb = hexToRgb(notes[key].color);
-                    tr += rgb.r; tg += rgb.g; tb += rgb.b;
+                    const meta = getNoteMeta(key);
+                    if (meta) {
+                        let rgb = hexToRgb(meta.color);
+                        tr += rgb.r; tg += rgb.g; tb += rgb.b;
+                    }
                 });
                 tr /= activeArr.length;
                 tg /= activeArr.length;
                 tb /= activeArr.length;
+                lastChordText = identifyChord(activeArr);
             } else {
                 tr = chordCore.r; tg = chordCore.g; tb = chordCore.b; 
             }
@@ -403,27 +732,59 @@
             chordCore.g += (tg - chordCore.g) * 0.1;
             chordCore.b += (tb - chordCore.b) * 0.1;
 
-            if (chordCore.scale > 0.01) {
+            // 2. The Center Ring & Text Display
+            if (chordCore.scale > 0.02) {
                 ctx.save();
                 ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.scale(chordCore.scale, chordCore.scale);
                 
-                let grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 200);
-                grad.addColorStop(0, `rgba(${Math.floor(chordCore.r)}, ${Math.floor(chordCore.g)}, ${Math.floor(chordCore.b)}, 0.4)`);
-                grad.addColorStop(0.4, `rgba(${Math.floor(chordCore.r)}, ${Math.floor(chordCore.g)}, ${Math.floor(chordCore.b)}, 0.1)`);
-                grad.addColorStop(1, `rgba(${Math.floor(chordCore.r)}, ${Math.floor(chordCore.g)}, ${Math.floor(chordCore.b)}, 0)`);
+                const ringRadius = 75 * chordCore.scale;
+                const baseLineWidth = 10 + Math.min(5, (activeArr.length > 0 ? activeArr.length - 1 : 0) * 1.25);
+                const ringStrokeWidth = baseLineWidth * Math.min(1.2, chordCore.scale);
                 
+                // Draw thick stroke ring
                 ctx.beginPath();
-                ctx.arc(0, 0, 200, 0, Math.PI * 2);
-                ctx.fillStyle = grad;
-                ctx.fill();
+                ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(${Math.floor(chordCore.r)}, ${Math.floor(chordCore.g)}, ${Math.floor(chordCore.b)}, ${Math.min(1, chordCore.scale)})`;
+                ctx.lineWidth = ringStrokeWidth;
+                ctx.shadowColor = ctx.strokeStyle;
+                ctx.shadowBlur = 18;
+                ctx.stroke();
 
-                ctx.beginPath();
-                ctx.arc(0, 0, 25, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, chordCore.scale * 0.3)})`;
-                ctx.fill();
-                
+                // Centered text inside the ring
+                if (lastChordText) {
+                    const fontSize = Math.max(13, Math.round(18 * chordCore.scale));
+                    ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, chordCore.scale)})`;
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                    ctx.fillText(lastChordText, 0, 0);
+                }
+
                 ctx.restore();
+            }
+
+            // 3. Edge-to-Edge Canvas Ripples
+            const maxRadius = Math.max(canvas.width, canvas.height);
+            for (let i = centerRipples.length - 1; i >= 0; i--) {
+                const rip = centerRipples[i];
+                rip.radius += rip.speed;
+                rip.opacity = Math.max(0, 1 - (rip.radius / maxRadius));
+                if (rip.opacity <= 0) {
+                    centerRipples.splice(i, 1);
+                } else {
+                    const rx = rip.x !== undefined ? rip.x : canvas.width / 2;
+                    const ry = rip.y !== undefined ? rip.y : canvas.height / 2;
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(rx, ry, rip.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = rip.color;
+                    ctx.lineWidth = 3;
+                    ctx.globalAlpha = rip.opacity;
+                    ctx.stroke();
+                    ctx.restore();
+                }
             }
 
             spawnShootingStar();
@@ -440,19 +801,132 @@
                 ctx.lineWidth = 2; ctx.stroke();
             }
 
+            // 4. Rising Flares, Fireworks, and Gravity (Pad Keys)
             for (let key in keyPositions) {
                 let isActive = currentlyHeldKeys.has(key);
-                let star = keyPositions[key];
+                let flare = keyPositions[key];
                 
                 if (isActive) {
-                    star.currentScale += (1.0 - star.currentScale) * 0.15; 
-                    star.currentRy -= 0.003; 
+                    if (!flare.hasExploded) {
+                        flare.y += flare.vy;
+                        flare.scale += (1.0 - flare.scale) * 0.2;
+                        
+                        // Hit ceiling while key is STILL held
+                        if (flare.y <= flare.ceilingY) {
+                            flare.y = flare.ceilingY;
+                            flare.hasExploded = true;
+                            // Trigger firework explosion: 20-30 colored confetti particles
+                            for (let i = 0; i < 26; i++) {
+                                const angle = Math.random() * Math.PI * 2;
+                                const speed = 2 + Math.random() * 5.5;
+                                confettiParticles.push({
+                                    x: flare.x,
+                                    y: flare.ceilingY,
+                                    vx: Math.cos(angle) * speed,
+                                    vy: Math.sin(angle) * speed - 1.5,
+                                    size: 2 + Math.random() * 2.5,
+                                    color: notes[key].color,
+                                    alpha: 1.0,
+                                    gravity: 0.16,
+                                    drag: 0.98
+                                });
+                            }
+                        }
+                    } else {
+                        // Reached ceiling, stops rising
+                        flare.scale += (0.4 - flare.scale) * 0.1;
+                    }
                 } else {
-                    star.currentScale += (0 - star.currentScale) * 0.1; 
+                    // Key released
+                    if (!flare.hasExploded) {
+                        // Early release before hitting ceiling: falls back down under gravity
+                        flare.vy += 0.25; // gravity pulling down
+                        flare.y += flare.vy;
+                        flare.scale += (0 - flare.scale) * 0.08;
+                        if (flare.y >= flare.baseY) {
+                            flare.y = flare.baseY;
+                            flare.scale = 0;
+                        }
+                    } else {
+                        // Already exploded, smoothly fade out
+                        flare.scale += (0 - flare.scale) * 0.15;
+                        if (flare.scale < 0.01) {
+                            flare.scale = 0;
+                            flare.y = flare.baseY;
+                        }
+                    }
                 }
                 
-                if (star.currentScale > 0.01) {
-                    drawFlare(star.rx * canvas.width, star.currentRy * canvas.height, star.currentScale, notes[key].color);
+                if (flare.scale > 0.01) {
+                    drawFlare(flare.x, flare.y, flare.scale, notes[key].color);
+                }
+            }
+
+            // 4b. MIDI & Virtual Piano Flares at random canvas X/Y coordinates
+            for (let i = midiFlares.length - 1; i >= 0; i--) {
+                const mf = midiFlares[i];
+                const isActive = currentlyHeldKeys.has(mf.id);
+                if (isActive) {
+                    if (!mf.hasExploded) {
+                        mf.y += mf.vy;
+                        mf.scale += (1.0 - mf.scale) * 0.2;
+                        if (mf.y <= mf.ceilingY) {
+                            mf.y = mf.ceilingY;
+                            mf.hasExploded = true;
+                            for (let p = 0; p < 26; p++) {
+                                const angle = Math.random() * Math.PI * 2;
+                                const speed = 2 + Math.random() * 5.5;
+                                confettiParticles.push({
+                                    x: mf.x,
+                                    y: mf.ceilingY,
+                                    vx: Math.cos(angle) * speed,
+                                    vy: Math.sin(angle) * speed - 1.5,
+                                    size: 2 + Math.random() * 2.5,
+                                    color: mf.color,
+                                    alpha: 1.0,
+                                    gravity: 0.16,
+                                    drag: 0.98
+                                });
+                            }
+                        }
+                    } else {
+                        mf.scale += (0.4 - mf.scale) * 0.1;
+                    }
+                } else {
+                    if (!mf.hasExploded) {
+                        mf.vy += 0.25;
+                        mf.y += mf.vy;
+                        mf.scale += (0 - mf.scale) * 0.08;
+                    } else {
+                        mf.scale += (0 - mf.scale) * 0.15;
+                    }
+                }
+
+                if (mf.scale > 0.01 && mf.y <= canvas.height) {
+                    drawFlare(mf.x, mf.y, mf.scale, mf.color);
+                } else if (!isActive) {
+                    midiFlares.splice(i, 1);
+                }
+            }
+
+            // Update & render confetti particles
+            for (let i = confettiParticles.length - 1; i >= 0; i--) {
+                const p = confettiParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vx *= p.drag;
+                p.vy += p.gravity;
+                p.alpha -= 0.016;
+                if (p.alpha <= 0 || p.y > canvas.height) {
+                    confettiParticles.splice(i, 1);
+                } else {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = Math.max(0, p.alpha);
+                    ctx.fill();
+                    ctx.restore();
                 }
             }
 
@@ -465,7 +939,30 @@
             if (!pad || !notes[key] || currentlyHeldKeys.has(key)) return;
             pad.classList.add('active');
             
-            if (keyPositions[key]) keyPositions[key].currentRy = keyPositions[key].baseRy;
+            // UI Pad Ripple
+            const padRipple = document.createElement('div');
+            padRipple.className = 'ripple-effect';
+            padRipple.style.borderColor = notes[key].color;
+            padRipple.addEventListener('animationend', () => padRipple.remove());
+            pad.appendChild(padRipple);
+
+            // Center Canvas Ripple
+            centerRipples.push({
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                radius: 20,
+                speed: 14,
+                opacity: 1.0,
+                color: notes[key].color
+            });
+
+            // Rising Flare reset
+            if (keyPositions[key]) {
+                keyPositions[key].y = keyPositions[key].baseY;
+                keyPositions[key].vy = -4.5;
+                keyPositions[key].hasExploded = false;
+                keyPositions[key].scale = 1.0;
+            }
             
             playNote(key); currentlyHeldKeys.add(key);
         }
@@ -476,6 +973,136 @@
             pad.classList.remove('active');
             stopNote(key); currentlyHeldKeys.delete(key);
         }
+
+        // --- 36-KEY VIRTUAL PIANO & WEB MIDI API INTEGRATION ---
+        const pianoContainer = document.getElementById('piano-container');
+        const keyboardDiv = document.querySelector('.keyboard');
+        const modeToggleBtn = document.getElementById('mode-toggle');
+        let isPianoMode = false;
+
+        // Dynamically generate 36 keys spanning 3 octaves: C3 (48) to B5 (83)
+        for (let noteNum = 48; noteNum <= 83; noteNum++) {
+            const pm = pitchMeta[noteNum % 12];
+            const keyEl = document.createElement('div');
+            keyEl.className = pm.isBlack ? 'black-key' : 'white-key';
+            keyEl.setAttribute('data-note', noteNum);
+
+            keyEl.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                triggerMidiNoteOn(noteNum);
+            });
+            keyEl.addEventListener('mouseenter', (e) => {
+                if (e.buttons === 1) triggerMidiNoteOn(noteNum);
+            });
+            keyEl.addEventListener('mouseup', () => triggerMidiNoteOff(noteNum));
+            keyEl.addEventListener('mouseleave', () => triggerMidiNoteOff(noteNum));
+
+            keyEl.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                triggerMidiNoteOn(noteNum);
+            });
+            keyEl.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                triggerMidiNoteOff(noteNum);
+            });
+            keyEl.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                triggerMidiNoteOff(noteNum);
+            });
+
+            pianoContainer.appendChild(keyEl);
+        }
+
+        modeToggleBtn.addEventListener('click', () => {
+            isPianoMode = !isPianoMode;
+            if (isPianoMode) {
+                keyboardDiv.style.display = 'none';
+                pianoContainer.style.display = 'flex';
+                modeToggleBtn.textContent = 'Switch to Pad Mode';
+            } else {
+                keyboardDiv.style.display = 'flex';
+                pianoContainer.style.display = 'none';
+                modeToggleBtn.textContent = 'Switch to Keyboard Mode';
+            }
+        });
+
+        function triggerMidiNoteOn(note) {
+            const voiceId = `midi_${note}`;
+            if (currentlyHeldKeys.has(voiceId)) return;
+
+            const freq = 440 * Math.pow(2, (note - 69) / 12);
+            playNote(freq, voiceId);
+            currentlyHeldKeys.add(voiceId);
+
+            const meta = getNoteMeta(note);
+            const color = meta ? meta.color : '#ffffff';
+
+            // Random canvas X/Y coordinate for visual flare & edge-to-edge ripple
+            const randX = canvas.width * (0.1 + Math.random() * 0.8);
+            const randY = canvas.height * (0.2 + Math.random() * 0.55);
+
+            centerRipples.push({
+                x: randX,
+                y: randY,
+                radius: 20,
+                speed: 14,
+                opacity: 1.0,
+                color: color
+            });
+
+            midiFlares.push({
+                id: voiceId,
+                x: randX,
+                y: randY,
+                ceilingY: Math.max(canvas.height * 0.12, randY - canvas.height * 0.35),
+                vy: -4.5,
+                scale: 1.0,
+                hasExploded: false,
+                color: color
+            });
+
+            const pianoKey = document.querySelector(`[data-note="${note}"]`);
+            if (pianoKey) pianoKey.classList.add('active');
+        }
+
+        function triggerMidiNoteOff(note) {
+            const voiceId = `midi_${note}`;
+            stopNote(voiceId);
+            currentlyHeldKeys.delete(voiceId);
+
+            const pianoKey = document.querySelector(`[data-note="${note}"]`);
+            if (pianoKey) pianoKey.classList.remove('active');
+        }
+
+        function handleMIDIMessage(event) {
+            const data = event.data;
+            const command = data[0];
+            const note = data[1];
+            const velocity = data.length > 2 ? data[2] : 0;
+
+            if (command === 144 && velocity > 0) {
+                triggerMidiNoteOn(note);
+            } else if (command === 128 || (command === 144 && velocity === 0) || velocity === 0) {
+                triggerMidiNoteOff(note);
+            }
+        }
+
+        function initMIDI() {
+            if (!navigator.requestMIDIAccess) return;
+            navigator.requestMIDIAccess().then((midiAccess) => {
+                for (let input of midiAccess.inputs.values()) {
+                    input.onmidimessage = handleMIDIMessage;
+                }
+                midiAccess.onstatechange = () => {
+                    for (let input of midiAccess.inputs.values()) {
+                        input.onmidimessage = handleMIDIMessage;
+                    }
+                };
+            }).catch((err) => {
+                console.warn('Web MIDI API access declined or unavailable:', err);
+            });
+        }
+        initMIDI();
 
         document.addEventListener('keydown', (e) => { if (!e.repeat) activatePad(e.key.toLowerCase()); });
         document.addEventListener('keyup', (e) => deactivatePad(e.key.toLowerCase()));

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can You Name It?</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+        body {
+            background-color: #000000;
+            color: white;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: white;
+            font-size: 16px;
+            border: 1px solid white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .back-btn:hover {
+            background-color: white;
+            color: black;
+        }
+
+        .slot-machine-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .arrow-btn {
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .arrow-btn:hover {
+            background: #555;
+        }
+
+        .slot-window {
+            width: 300px;
+            height: 200px;
+            perspective: 1000px;
+            overflow: hidden;
+            border: 4px solid #444;
+            border-radius: 12px;
+            background: #111;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            transition: transform 3s cubic-bezier(0.15, 0.85, 0.15, 1);
+        }
+
+        .panel {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #222;
+            border: 2px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(255,255,255,0.1);
+        }
+
+        /* 5 panels = 72deg each */
+        .panel:nth-child(1) { transform: rotateX(calc(72deg * 0)) translateZ(150px); background: #1a1a2e; border-color: #e94560; }
+        .panel:nth-child(2) { transform: rotateX(calc(72deg * 1)) translateZ(150px); background: #16213e; border-color: #0f3460; }
+        .panel:nth-child(3) { transform: rotateX(calc(72deg * 2)) translateZ(150px); background: #0f3460; border-color: #e94560; }
+        .panel:nth-child(4) { transform: rotateX(calc(72deg * 3)) translateZ(150px); background: #e94560; border-color: #1a1a2e; }
+        .panel:nth-child(5) { transform: rotateX(calc(72deg * 4)) translateZ(150px); background: #222; border-color: #fff; }
+
+        .lever-container {
+            width: 40px;
+            height: 200px;
+            position: relative;
+            perspective: 500px;
+        }
+
+        .lever-base {
+            width: 40px;
+            height: 80px;
+            background: #444;
+            position: absolute;
+            bottom: 0;
+            border-radius: 8px;
+        }
+
+        .lever-arm {
+            position: absolute;
+            bottom: 60px;
+            left: 15px;
+            width: 10px;
+            height: 120px;
+            background: silver;
+            transform-origin: bottom center;
+            transform: rotateX(0deg);
+        }
+
+        .lever-knob {
+            width: 30px;
+            height: 30px;
+            background: red;
+            border-radius: 50%;
+            position: absolute;
+            top: -15px;
+            left: -10px;
+            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.5);
+        }
+
+        .pulled .lever-arm {
+            animation: pullLever 0.6s ease-in-out;
+        }
+
+        @keyframes pullLever {
+            0% { transform: rotateX(0deg); }
+            50% { transform: rotateX(60deg); }
+            100% { transform: rotateX(0deg); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-btn">&larr; Back to Index</a>
+
+    <div class="slot-machine-container">
+        <div class="controls">
+            <button class="arrow-btn" id="up-btn">&#9650;</button>
+            <button class="arrow-btn" id="down-btn">&#9660;</button>
+        </div>
+
+        <div class="slot-window">
+            <div class="wheel" id="wheel">
+                <div class="panel">Quiz 1</div>
+                <div class="panel">Quiz 2</div>
+                <div class="panel">Quiz 3</div>
+                <div class="panel">Quiz 4</div>
+                <div class="panel">Quiz 5</div>
+            </div>
+        </div>
+
+        <div class="lever-container" id="lever-container">
+            <div class="lever-base"></div>
+            <div class="lever-arm">
+                <div class="lever-knob"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const wheel = document.getElementById('wheel');
+        const upBtn = document.getElementById('up-btn');
+        const downBtn = document.getElementById('down-btn');
+        const leverContainer = document.getElementById('lever-container');
+        
+        let currentRotation = 0;
+        let isSpinning = false;
+
+        function updateWheel(duration) {
+            wheel.style.transition = `transform ${duration}s cubic-bezier(0.15, 0.85, 0.15, 1)`;
+            wheel.style.transform = `rotateX(${currentRotation}deg)`;
+        }
+
+        upBtn.addEventListener('click', () => {
+            if (isSpinning) return;
+            currentRotation += 72;
+            updateWheel(0.3);
+        });
+
+        downBtn.addEventListener('click', () => {
+            if (isSpinning) return;
+            currentRotation -= 72;
+            updateWheel(0.3);
+        });
+
+        leverContainer.addEventListener('click', () => {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            leverContainer.classList.add('pulled');
+            
+            // Generate a random spin: 5 full rotations (360 * 5) + random multiple of 72
+            const randomPanels = Math.floor(Math.random() * 5);
+            const spinAmount = (360 * 5) + (randomPanels * 72);
+            
+            // Random direction
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            
+            currentRotation += spinAmount * direction;
+
+            updateWheel(3);
+
+            setTimeout(() => {
+                leverContainer.classList.remove('pulled');
+            }, 600);
+
+            setTimeout(() => {
+                isSpinning = false;
+            }, 3000); // matches the 3s transition
+        });
+    </script>
+</body>
+</html>
