@@ -4,245 +4,418 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Can You Name It?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
-            background-color: #000000;
-            color: white;
-            height: 100vh;
+            background-color: #ffffff;
+            color: #1e293b;
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            font-family: 'Montserrat', sans-serif;
             position: relative;
+            padding: 20px;
         }
 
         .back-btn {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 30px;
+            left: 30px;
+            color: rgba(0, 0, 0, 0.4);
             text-decoration: none;
-            color: white;
-            font-size: 16px;
-            border: 1px solid white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            z-index: 10;
+            font-size: 28px;
+            z-index: 100;
+            transition: color 0.2s ease, transform 0.2s ease;
         }
 
         .back-btn:hover {
-            background-color: white;
-            color: black;
+            color: #000000;
+            transform: translateX(-5px);
         }
 
-        .slot-machine-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 40px;
-        }
-
-        .controls {
+        /* Start Screen */
+        #menu-screen {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            align-items: center;
+            justify-content: center;
         }
 
-        .arrow-btn {
-            background: #333;
-            color: white;
+        .quiz-category-btn {
+            background: transparent;
             border: none;
-            border-radius: 8px;
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
             cursor: pointer;
-            transition: background 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            padding: 20px;
+            border-radius: 16px;
+            transition: transform 0.25s ease;
+        }
+
+        .quiz-category-btn:hover {
+            transform: translateY(-5px);
+        }
+
+        .quiz-category-btn img {
+            width: 140px;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+
+        .category-label {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 200;
+            font-size: 1.5rem;
+            letter-spacing: 3px;
+            color: #1e293b;
+            text-transform: lowercase;
+        }
+
+        /* Quiz UI */
+        #quiz-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 28px;
+            width: 100%;
+            max-width: 640px;
+            text-align: center;
+        }
+
+        #quiz-progress {
+            font-weight: 300;
+            font-size: 0.95rem;
+            letter-spacing: 2px;
+            color: #64748b;
+        }
+
+        .image-wrapper {
+            width: 100%;
+            height: 340px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .arrow-btn:hover {
-            background: #555;
+        #bird-image {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 14px;
+            object-fit: contain;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
         }
 
-        .slot-window {
-            width: 300px;
-            height: 200px;
-            perspective: 1000px;
-            overflow: hidden;
-            border: 4px solid #444;
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            width: 100%;
+        }
+
+        .option-btn {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
             border-radius: 12px;
-            background: #111;
-            position: relative;
+            padding: 16px 18px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 400;
+            font-size: 0.95rem;
+            color: #1e293b;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: center;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+            gap: 12px;
+            text-align: left;
+            transition: transform 0.15s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
         }
 
-        .wheel {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            transform-style: preserve-3d;
-            transition: transform 3s cubic-bezier(0.15, 0.85, 0.15, 1);
+        .option-btn:hover:not(:disabled) {
+            border-color: #64748b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
         }
 
-        .panel {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: #222;
-            border: 2px solid #555;
-            display: flex;
+        .option-btn:disabled {
+            cursor: default;
+        }
+
+        .option-letter {
+            font-weight: 500;
+            color: #64748b;
+            min-width: 20px;
+        }
+
+        .option-btn.correct {
+            background-color: #22c55e;
+            border-color: #16a34a;
+            color: #ffffff;
+        }
+
+        .option-btn.correct .option-letter {
+            color: #ffffff;
+        }
+
+        .option-btn.incorrect {
+            background-color: #ef4444;
+            border-color: #dc2626;
+            color: #ffffff;
+        }
+
+        .option-btn.incorrect .option-letter {
+            color: #ffffff;
+        }
+
+        /* Score Screen */
+        #score-screen {
+            display: none;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
-            font-weight: bold;
-            color: #fff;
-            box-shadow: 0 0 15px rgba(255,255,255,0.1);
+            gap: 20px;
+            text-align: center;
         }
 
-        /* 5 panels = 72deg each */
-        .panel:nth-child(1) { transform: rotateX(calc(72deg * 0)) translateZ(150px); background: #1a1a2e; border-color: #e94560; }
-        .panel:nth-child(2) { transform: rotateX(calc(72deg * 1)) translateZ(150px); background: #16213e; border-color: #0f3460; }
-        .panel:nth-child(3) { transform: rotateX(calc(72deg * 2)) translateZ(150px); background: #0f3460; border-color: #e94560; }
-        .panel:nth-child(4) { transform: rotateX(calc(72deg * 3)) translateZ(150px); background: #e94560; border-color: #1a1a2e; }
-        .panel:nth-child(5) { transform: rotateX(calc(72deg * 4)) translateZ(150px); background: #222; border-color: #fff; }
-
-        .lever-container {
-            width: 40px;
-            height: 200px;
-            position: relative;
-            perspective: 500px;
+        .score-title {
+            font-weight: 200;
+            font-size: 2rem;
+            letter-spacing: 3px;
+            color: #1e293b;
         }
 
-        .lever-base {
-            width: 40px;
-            height: 80px;
-            background: #444;
-            position: absolute;
-            bottom: 0;
-            border-radius: 8px;
+        .score-value {
+            font-weight: 400;
+            font-size: 3.2rem;
+            color: #0f172a;
         }
 
-        .lever-arm {
-            position: absolute;
-            bottom: 60px;
-            left: 15px;
-            width: 10px;
-            height: 120px;
-            background: silver;
-            transform-origin: bottom center;
-            transform: rotateX(0deg);
+        .restart-btn {
+            margin-top: 10px;
+            padding: 12px 28px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 24px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 400;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
         }
 
-        .lever-knob {
-            width: 30px;
-            height: 30px;
-            background: red;
-            border-radius: 50%;
-            position: absolute;
-            top: -15px;
-            left: -10px;
-            box-shadow: inset -5px -5px 10px rgba(0,0,0,0.5);
+        .restart-btn:hover {
+            border-color: #0f172a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
         }
 
-        .pulled .lever-arm {
-            animation: pullLever 0.6s ease-in-out;
+        @media (max-width: 560px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+            .image-wrapper {
+                height: 250px;
+            }
         }
-
-        @keyframes pullLever {
-            0% { transform: rotateX(0deg); }
-            50% { transform: rotateX(60deg); }
-            100% { transform: rotateX(0deg); }
-        }
-
     </style>
 </head>
 <body>
 
-    <a href="index.html" class="back-btn">&larr; Back to Index</a>
+    <a href="index.html" class="back-btn">&#8592;</a>
 
-    <div class="slot-machine-container">
-        <div class="controls">
-            <button class="arrow-btn" id="up-btn">&#9650;</button>
-            <button class="arrow-btn" id="down-btn">&#9660;</button>
+    <!-- Start Screen -->
+    <div id="menu-screen">
+        <button class="quiz-category-btn" id="start-birds-btn">
+            <img src="images/You Should know these/Birds/Bird_One_QuizIcon.png" alt="birds">
+            <span class="category-label">birds</span>
+        </button>
+    </div>
+
+    <!-- Multiple-Choice Quiz Screen -->
+    <div id="quiz-screen">
+        <div id="quiz-progress">1 / 11</div>
+        <div class="image-wrapper">
+            <img id="bird-image" src="" alt="Bird to identify">
         </div>
-
-        <div class="slot-window">
-            <div class="wheel" id="wheel">
-                <div class="panel">Quiz 1</div>
-                <div class="panel">Quiz 2</div>
-                <div class="panel">Quiz 3</div>
-                <div class="panel">Quiz 4</div>
-                <div class="panel">Quiz 5</div>
-            </div>
-        </div>
-
-        <div class="lever-container" id="lever-container">
-            <div class="lever-base"></div>
-            <div class="lever-arm">
-                <div class="lever-knob"></div>
-            </div>
+        <div class="options-grid" id="options-grid">
+            <button class="option-btn" data-index="0"><span class="option-letter">A.</span><span class="option-text"></span></button>
+            <button class="option-btn" data-index="1"><span class="option-letter">B.</span><span class="option-text"></span></button>
+            <button class="option-btn" data-index="2"><span class="option-letter">C.</span><span class="option-text"></span></button>
+            <button class="option-btn" data-index="3"><span class="option-letter">D.</span><span class="option-text"></span></button>
         </div>
     </div>
 
-    <script>
-        const wheel = document.getElementById('wheel');
-        const upBtn = document.getElementById('up-btn');
-        const downBtn = document.getElementById('down-btn');
-        const leverContainer = document.getElementById('lever-container');
-        
-        let currentRotation = 0;
-        let isSpinning = false;
+    <!-- Final Score Screen -->
+    <div id="score-screen">
+        <h2 class="score-title">quiz complete</h2>
+        <div class="score-value" id="final-score">0 / 11</div>
+        <button class="restart-btn" id="restart-btn">play again</button>
+    </div>
 
-        function updateWheel(duration) {
-            wheel.style.transition = `transform ${duration}s cubic-bezier(0.15, 0.85, 0.15, 1)`;
-            wheel.style.transform = `rotateX(${currentRotation}deg)`;
+    <script>
+        const birdQuizData = [
+            {
+                image: "images/You Should know these/Birds/AmericanWoodCock.webp",
+                answer: "American Woodcock",
+                decoys: ["Wilson's Snipe", "Ruffed Grouse", "Northern Bobwhite"]
+            },
+            {
+                image: "images/You Should know these/Birds/Barn Swallow.webp",
+                answer: "Barn Swallow",
+                decoys: ["Tree Swallow", "Purple Martin", "Cliff Swallow"]
+            },
+            {
+                image: "images/You Should know these/Birds/blue_footed_booby_7C2V0919.webp",
+                answer: "Blue-footed Booby",
+                decoys: ["Masked Booby", "Brown Pelican", "Magnificent Frigatebird"]
+            },
+            {
+                image: "images/You Should know these/Birds/bushtit.webp",
+                answer: "Bushtit",
+                decoys: ["Verdin", "Blue-gray Gnatcatcher", "Wrentit"]
+            },
+            {
+                image: "images/You Should know these/Birds/elfowl.webp",
+                answer: "Elf Owl",
+                decoys: ["Northern Pygmy-Owl", "Flammulated Owl", "Boreal Owl"]
+            },
+            {
+                image: "images/You Should know these/Birds/fluffybacktitbabbler.webp",
+                answer: "Fluffy-backed Tit-babbler",
+                decoys: ["Chestnut-winged Babbler", "Striped Tit-babbler", "Pin-striped Tit-babbler"]
+            },
+            {
+                image: "images/You Should know these/Birds/little_bustard.webp",
+                answer: "Little Bustard",
+                decoys: ["Great Bustard", "Houbara Bustard", "Eurasian Thick-knee"]
+            },
+            {
+                image: "images/You Should know these/Birds/rough-faced-shag-phalacrocorax-carunculatus.webp",
+                answer: "Rough-faced Shag",
+                decoys: ["Great Cormorant", "European Shag", "Double-crested Cormorant"]
+            },
+            {
+                image: "images/You Should know these/Birds/tufted_titmouse.webp",
+                answer: "Tufted Titmouse",
+                decoys: ["Black-capped Chickadee", "Juniper Titmouse", "Oak Titmouse"]
+            },
+            {
+                image: "images/You Should know these/Birds/whiterumpedswift.webp",
+                answer: "White-rumped Swift",
+                decoys: ["Chimney Swift", "Common Swift", "Alpine Swift"]
+            },
+            {
+                image: "images/You Should know these/Birds/woodpecker.webp",
+                answer: "Woodpecker",
+                decoys: ["Northern Flicker", "Yellow-bellied Sapsucker", "Pileated Woodpecker"]
+            }
+        ];
+
+        const menuScreen = document.getElementById('menu-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const scoreScreen = document.getElementById('score-screen');
+        const startBirdsBtn = document.getElementById('start-birds-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const birdImageEl = document.getElementById('bird-image');
+        const quizProgressEl = document.getElementById('quiz-progress');
+        const finalScoreEl = document.getElementById('final-score');
+        const optionButtons = document.querySelectorAll('.option-btn');
+        const letters = ['A', 'B', 'C', 'D'];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let isTransitioning = false;
+
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
         }
 
-        upBtn.addEventListener('click', () => {
-            if (isSpinning) return;
-            currentRotation += 72;
-            updateWheel(0.3);
-        });
+        function loadQuestion(index) {
+            isTransitioning = false;
+            const currentBird = birdQuizData[index];
+            birdImageEl.src = currentBird.image;
+            birdImageEl.alt = "Mystery Bird";
+            quizProgressEl.textContent = `${index + 1} / ${birdQuizData.length}`;
 
-        downBtn.addEventListener('click', () => {
-            if (isSpinning) return;
-            currentRotation -= 72;
-            updateWheel(0.3);
-        });
+            const choices = shuffleArray([currentBird.answer, ...currentBird.decoys]);
 
-        leverContainer.addEventListener('click', () => {
-            if (isSpinning) return;
-            isSpinning = true;
+            optionButtons.forEach((btn, idx) => {
+                btn.classList.remove('correct', 'incorrect');
+                btn.disabled = false;
+                btn.dataset.choice = choices[idx];
+                btn.querySelector('.option-letter').textContent = `${letters[idx]}.`;
+                btn.querySelector('.option-text').textContent = choices[idx];
+            });
+        }
 
-            leverContainer.classList.add('pulled');
-            
-            // Generate a random spin: 5 full rotations (360 * 5) + random multiple of 72
-            const randomPanels = Math.floor(Math.random() * 5);
-            const spinAmount = (360 * 5) + (randomPanels * 72);
-            
-            // Random direction
-            const direction = Math.random() > 0.5 ? 1 : -1;
-            
-            currentRotation += spinAmount * direction;
+        function handleOptionClick(e) {
+            if (isTransitioning) return;
+            isTransitioning = true;
 
-            updateWheel(3);
+            const clickedBtn = e.currentTarget;
+            const selectedAnswer = clickedBtn.dataset.choice;
+            const correctAnswer = birdQuizData[currentQuestionIndex].answer;
+
+            optionButtons.forEach(btn => {
+                btn.disabled = true;
+            });
+
+            if (selectedAnswer === correctAnswer) {
+                clickedBtn.classList.add('correct');
+                score++;
+            } else {
+                clickedBtn.classList.add('incorrect');
+            }
 
             setTimeout(() => {
-                leverContainer.classList.remove('pulled');
-            }, 600);
+                currentQuestionIndex++;
+                if (currentQuestionIndex < birdQuizData.length) {
+                    loadQuestion(currentQuestionIndex);
+                } else {
+                    showFinalScore();
+                }
+            }, 1500);
+        }
 
-            setTimeout(() => {
-                isSpinning = false;
-            }, 3000); // matches the 3s transition
-        });
+        function showFinalScore() {
+            quizScreen.style.display = 'none';
+            scoreScreen.style.display = 'flex';
+            finalScoreEl.textContent = `${score} / ${birdQuizData.length}`;
+        }
+
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            score = 0;
+            menuScreen.style.display = 'none';
+            scoreScreen.style.display = 'none';
+            quizScreen.style.display = 'flex';
+            loadQuestion(currentQuestionIndex);
+        }
+
+        startBirdsBtn.addEventListener('click', startQuiz);
+        restartBtn.addEventListener('click', startQuiz);
+        optionButtons.forEach(btn => btn.addEventListener('click', handleOptionClick));
     </script>
 </body>
 </html>
