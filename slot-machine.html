@@ -3,223 +3,1760 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slot Machine</title>
+    <title>Joey's Jackpot Deluxe - Retro Slot Machine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bungee+Inline&family=Orbitron:wght@600;800;900&family=Press+Start+2P&family=Righteous&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        :root {
+            --gold-bright: #ffe66d;
+            --gold-mid: #f5b700;
+            --gold-dark: #9c6ade;
+            --brass-1: #fff2a6;
+            --brass-2: #d49b27;
+            --brass-3: #6e4806;
+            --crimson-deep: #38000a;
+            --crimson-mid: #7a0016;
+            --crimson-bright: #d90429;
+            --neon-pink: #ff2a85;
+            --neon-cyan: #00f5d4;
+            --neon-amber: #ffbe0b;
+            --led-red: #ff1e42;
+            --led-green: #00ff66;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
 
         body {
-            background-color: #000000;
-            height: 100vh;
+            background:
+                radial-gradient(circle at 50% 35%, rgba(168, 12, 48, 0.42) 0%, rgba(45, 0, 18, 0.85) 55%, #070106 100%),
+                repeating-linear-gradient(45deg, #120208 0px, #120208 12px, #1a040d 12px, #1a040d 24px);
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             overflow: hidden;
             position: relative;
+            font-family: 'Righteous', sans-serif;
+            color: #fff;
+        }
+
+        /* Ambient casino background glow */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(255, 190, 11, 0.08), transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(255, 42, 133, 0.09), transparent 40%);
+            pointer-events: none;
+            z-index: 0;
         }
 
         .back-btn {
-            position: absolute;
-            top: 30px;
-            left: 30px;
-            color: rgba(255, 255, 255, 0.4);
+            position: fixed;
+            top: 24px;
+            left: 28px;
+            color: rgba(255, 230, 109, 0.7);
             text-decoration: none;
             font-size: 28px;
-            z-index: 100;
-            transition: color 0.2s ease, transform 0.2s ease;
-        }
-        .back-btn:hover {
-            color: #ffffff;
-            transform: translateX(-5px);
-        }
-
-        .slot-machine-container {
+            z-index: 200;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 215, 0, 0.35);
+            background: rgba(30, 4, 12, 0.75);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 40px;
+            box-shadow: 0 0 15px rgba(255, 183, 0, 0.2);
+            transition: all 0.2s ease;
         }
 
-        /* Left Column: Controls */
-        .controls {
+        .back-btn:hover {
+            color: #fff;
+            border-color: var(--gold-bright);
+            transform: translateX(-4px) scale(1.05);
+            box-shadow: 0 0 22px rgba(255, 230, 109, 0.55);
+        }
+
+        /* Physics Coin Overlay Canvas */
+        #coin-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 120;
+        }
+
+        /* Main Stage Wrapper */
+        .casino-stage {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 70px 10px 10px;
+            transform-origin: center center;
+        }
+
+        /* Cabinet Body */
+        .slot-cabinet {
+            width: 650px;
+            background: linear-gradient(180deg, #5c0314 0%, #3a000b 50%, #210005 100%);
+            border-radius: 36px 36px 22px 22px;
+            border: 6px solid #e6b84c;
+            box-shadow:
+                0 28px 70px rgba(0, 0, 0, 0.9),
+                0 0 50px rgba(255, 42, 133, 0.25),
+                inset 0 2px 10px rgba(255, 250, 200, 0.65),
+                inset 0 -15px 35px rgba(0, 0, 0, 0.85);
+            position: relative;
+            padding: 18px 22px 20px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 12px;
         }
 
-        .arrow-btn {
-            width: 56px;
-            height: 56px;
-            background: #1e1e1e;
-            border: 2px solid #555;
-            border-radius: 10px;
-            color: #ccc;
-            font-size: 22px;
-            cursor: pointer;
+        /* Outer Metallic Gold Trim Ring */
+        .slot-cabinet::before {
+            content: '';
+            position: absolute;
+            inset: -12px;
+            border-radius: 44px 44px 28px 28px;
+            background: linear-gradient(135deg, #9b6c15 0%, #ffe885 25%, #b57c14 50%, #fff0a8 75%, #734b08 100%);
+            z-index: -1;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.85), 0 0 25px rgba(245, 183, 0, 0.35);
+        }
+
+        /* Perimeter Chase Bulbs */
+        .bulb-strip {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
-        }
-        .arrow-btn:hover {
-            background: #333;
-            color: #fff;
-            border-color: #888;
-        }
-        .arrow-btn:active {
-            transform: scale(0.95);
+            padding: 2px 10px;
         }
 
-        /* Center Column: Slot Window & 3D Wheel */
-        .slot-window {
-            width: 300px;
-            height: 220px;
-            perspective: 1000px;
+        .bulb {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #fff, #ffbe0b 55%, #995800 100%);
+            box-shadow: 0 0 10px #ffbe0b, 0 0 20px rgba(255, 190, 11, 0.6);
+            transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .bulb:nth-child(even) {
+            animation: bulbBlink 1.1s infinite alternate;
+        }
+        .bulb:nth-child(odd) {
+            animation: bulbBlink 1.1s infinite alternate-reverse;
+        }
+
+        .slot-cabinet.win-state .bulb:nth-child(even) {
+            animation: bulbWinFast 0.18s infinite alternate;
+        }
+        .slot-cabinet.win-state .bulb:nth-child(odd) {
+            animation: bulbWinFast 0.18s infinite alternate-reverse;
+        }
+
+        .slot-cabinet.jackpot-state .bulb {
+            animation: bulbJackpot 0.14s infinite alternate !important;
+        }
+
+        @keyframes bulbBlink {
+            0% { opacity: 0.35; transform: scale(0.88); box-shadow: 0 0 4px #ff9900; }
+            100% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 14px #fff3b0, 0 0 28px #ffbe0b; }
+        }
+
+        @keyframes bulbWinFast {
+            0% { background: #ff0055; box-shadow: 0 0 16px #ff0055, 0 0 30px #ff0055; transform: scale(0.95); }
+            100% { background: #ffe66d; box-shadow: 0 0 20px #fff, 0 0 38px #ffe66d; transform: scale(1.25); }
+        }
+
+        @keyframes bulbJackpot {
+            0% { background: #00f5d4; box-shadow: 0 0 20px #00f5d4, 0 0 40px #00f5d4; transform: scale(1.2); }
+            50% { background: #ffbe0b; box-shadow: 0 0 24px #fff, 0 0 45px #ffbe0b; transform: scale(1.3); }
+            100% { background: #ff2a85; box-shadow: 0 0 20px #ff2a85, 0 0 40px #ff2a85; transform: scale(1.2); }
+        }
+
+        /* Top Marquee Sign */
+        .marquee-header {
+            background: linear-gradient(180deg, #2b0008 0%, #610014 50%, #240006 100%);
+            border: 4px solid #f5b700;
+            border-radius: 22px 22px 12px 12px;
+            padding: 10px 16px 8px;
+            text-align: center;
+            position: relative;
+            box-shadow:
+                inset 0 0 25px rgba(255, 42, 133, 0.45),
+                0 6px 16px rgba(0, 0, 0, 0.7);
             overflow: hidden;
-            border: 3px solid #555;
-            border-radius: 12px;
-            background: #0a0a0a;
-            position: relative;
+        }
+
+        .marquee-title {
+            font-family: 'Bungee Inline', cursive;
+            font-size: 29px;
+            letter-spacing: 3px;
+            color: #fff6cc;
+            text-transform: uppercase;
+            text-shadow:
+                0 0 8px #ffbe0b,
+                0 0 18px #ff0055,
+                0 4px 0 #700018;
+            line-height: 1.05;
+        }
+
+        .marquee-banner {
+            margin-top: 5px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 11px;
+            color: var(--neon-cyan);
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 10px rgba(0, 245, 212, 0.85);
+            min-height: 16px;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+
+        .slot-cabinet.win-state .marquee-banner {
+            color: #ffe66d;
+            text-shadow: 0 0 15px #ffe66d, 0 0 25px #ff0055;
+            animation: bannerPulse 0.35s infinite alternate;
+        }
+
+        @keyframes bannerPulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.07); }
+        }
+
+        /* Mini Paytable Bar */
+        .paytable-bar {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            background: rgba(15, 0, 5, 0.78);
+            border: 2px solid rgba(245, 183, 0, 0.55);
+            border-radius: 10px;
+            padding: 6px 8px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+        }
+
+        .pay-tier {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 30px rgba(255, 255, 255, 0.05), inset 0 0 40px rgba(0, 0, 0, 0.9);
-        }
-
-        .wheel {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            transform-style: preserve-3d;
-            transition: transform 3s cubic-bezier(0.15, 0.85, 0.15, 1);
-        }
-
-        .panel {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: #2a2a2a;
-            border: 2px solid #c0c0c0;
-            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.7);
-            transform: rotateX(calc(72deg * var(--index))) translateZ(150px);
-            backface-visibility: hidden;
-        }
-
-        /* Right Column: Lever */
-        .lever-container {
-            width: 60px;
-            height: 220px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            perspective: 600px;
+            padding: 4px 4px;
+            border-radius: 6px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.35));
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            transition: all 0.2s ease;
             cursor: pointer;
+            position: relative;
         }
 
-        .lever {
+        .pay-tier:hover {
+            border-color: var(--gold-bright);
+            background: rgba(255, 190, 11, 0.16);
+            transform: translateY(-1px);
+        }
+
+        .pay-tier.jackpot-tier {
+            background: linear-gradient(180deg, rgba(255, 190, 11, 0.28), rgba(140, 0, 45, 0.55));
+            border-color: #ffbe0b;
+            box-shadow: 0 0 12px rgba(255, 190, 11, 0.35);
+        }
+
+        .pay-tier.active-win {
+            background: linear-gradient(180deg, #ffbe0b, #d90429);
+            border-color: #fff;
+            box-shadow: 0 0 18px #ffe66d;
+            animation: tierFlash 0.3s infinite alternate;
+        }
+
+        @keyframes tierFlash {
+            from { filter: brightness(1); }
+            to { filter: brightness(1.35); }
+        }
+
+        .pay-tier-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            font-weight: 800;
+            color: #ffe66d;
+            letter-spacing: 0.5px;
+        }
+
+        .pay-tier-mult {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            color: #fff;
+            margin-top: 3px;
+        }
+
+        /* Reel Housing & Glass Window */
+        .reel-housing {
             position: relative;
-            width: 14px;
-            height: 140px;
-            background: linear-gradient(to right, #888, #ddd, #888);
-            border-radius: 7px;
+            background: linear-gradient(180deg, #090909 0%, #1c1c1c 50%, #090909 100%);
+            border: 6px solid #d49b27;
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow:
+                inset 0 0 30px rgba(0,0,0,0.95),
+                0 6px 20px rgba(0,0,0,0.8);
+        }
+
+        .reels-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            height: 234px;
+            position: relative;
+        }
+
+        /* Center Payline Indicator */
+        .payline-bar {
+            position: absolute;
+            top: 50%;
+            left: -10px;
+            right: -10px;
+            height: 4px;
+            transform: translateY(-50%);
+            background: linear-gradient(90deg, #ff0055, rgba(255, 230, 109, 0.9), #ff0055);
+            box-shadow: 0 0 12px #ff0055, 0 0 22px rgba(255, 0, 85, 0.8);
+            z-index: 30;
+            pointer-events: none;
+            opacity: 0.75;
+            transition: all 0.25s ease;
+        }
+
+        .payline-badge {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #d90429;
+            border: 2px solid #ffe66d;
+            color: #fff;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            padding: 4px 5px;
+            border-radius: 4px;
+            z-index: 35;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.9);
+            pointer-events: none;
+        }
+        .payline-badge.left { left: -14px; }
+        .payline-badge.right { right: -14px; }
+
+        .slot-cabinet.win-state .payline-bar {
+            height: 6px;
+            opacity: 1;
+            background: linear-gradient(90deg, #00f5d4, #ffe66d, #ff0055, #ffe66d, #00f5d4);
+            box-shadow: 0 0 18px #ffe66d, 0 0 35px #ff0055;
+        }
+
+        /* Individual Vertical Reel Drum */
+        .reel-viewport {
+            background: linear-gradient(
+                180deg,
+                #8f897d 0%,
+                #f8f4e8 18%,
+                #ffffff 50%,
+                #f8f4e8 82%,
+                #8f897d 100%
+            );
+            border-radius: 10px;
+            border: 3px solid #4a3508;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                inset 0 22px 26px rgba(0, 0, 0, 0.65),
+                inset 0 -22px 26px rgba(0, 0, 0, 0.65),
+                inset 0 0 10px rgba(0, 0, 0, 0.45);
+        }
+
+        /* Cylindrical Drum Shading & Glass Highlight Overlay */
+        .reel-viewport::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(
+                    180deg,
+                    rgba(0, 0, 0, 0.58) 0%,
+                    rgba(0, 0, 0, 0.08) 24%,
+                    rgba(255, 255, 255, 0.22) 47%,
+                    rgba(255, 255, 255, 0.0) 53%,
+                    rgba(0, 0, 0, 0.08) 76%,
+                    rgba(0, 0, 0, 0.58) 100%
+                );
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .reel-strip {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            will-change: transform, filter;
+        }
+
+        .reel-strip.spinning-blur {
+            filter: blur(0px) drop-shadow(0 14px 6px rgba(0, 0, 0, 0.35)) drop-shadow(0 -14px 6px rgba(0, 0, 0, 0.35));
+        }
+
+        .symbol-cell {
+            width: 100%;
+            height: 78px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            position: relative;
+            border-bottom: 1px dashed rgba(120, 95, 40, 0.22);
+        }
+
+        .symbol-cell.winner-cell .symbol-graphic {
+            animation: winnerPop 0.45s infinite alternate ease-in-out;
+        }
+
+        @keyframes winnerPop {
+            0% { transform: scale(1) rotate(-3deg); filter: drop-shadow(0 0 6px #ffbe0b); }
+            100% { transform: scale(1.16) rotate(3deg); filter: drop-shadow(0 0 18px #ff0055); }
+        }
+
+        .symbol-graphic {
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: transform 0.2s ease;
+        }
+
+        /* Custom Joey Face Symbol Styling */
+        .joey-symbol-frame {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            padding: 3px;
+            background: conic-gradient(#ffe66d, #ff0055, #00f5d4, #ffe66d);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 0 12px rgba(255, 190, 11, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .joey-symbol-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            background: #2b0008;
+        }
+
+        .joey-badge {
+            position: absolute;
+            bottom: -4px;
+            background: linear-gradient(90deg, #d90429, #ff0055);
+            color: #ffe66d;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 7px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            border: 1px solid #ffe66d;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+            letter-spacing: 0.4px;
+        }
+
+        /* Jackpot Overlay Banner inside Reel Housing */
+        .jackpot-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, rgba(255, 190, 11, 0.28) 0%, rgba(0, 0, 0, 0.55) 100%);
+            z-index: 45;
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.7);
+            transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.18, 1.4, 0.4, 1);
+        }
+
+        .jackpot-overlay.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .jackpot-banner-text {
+            font-family: 'Bungee Inline', cursive;
+            font-size: 44px;
+            color: #ffe66d;
+            text-shadow:
+                0 0 12px #fff,
+                0 0 25px #ff0055,
+                0 0 45px #ff0055,
+                0 5px 0 #590012;
+            letter-spacing: 3px;
+            animation: jackpotShake 0.22s infinite alternate;
+        }
+
+        .jackpot-sub-text {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 13px;
+            color: #00f5d4;
+            background: rgba(20, 0, 8, 0.88);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 2px solid #ffe66d;
+            margin-top: 6px;
+            box-shadow: 0 0 20px rgba(0, 245, 212, 0.7);
+        }
+
+        @keyframes jackpotShake {
+            0% { transform: rotate(-2deg) scale(0.98); }
+            100% { transform: rotate(2deg) scale(1.05); }
+        }
+
+        /* Digital LED Readout Panel */
+        .digital-dash {
+            display: grid;
+            grid-template-columns: 1.25fr 0.9fr 1.25fr;
+            gap: 12px;
+            background: #140207;
+            border: 3px solid #a87919;
+            border-radius: 12px;
+            padding: 10px 14px;
+            box-shadow: inset 0 4px 12px rgba(0,0,0,0.9);
+        }
+
+        .led-box {
+            background: #060103;
+            border: 2px solid #3d1d26;
+            border-radius: 8px;
+            padding: 6px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: center;
+            box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.95);
+            position: relative;
+        }
+
+        .led-label {
+            align-self: flex-start;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            color: #c79a4b;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .led-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--led-red);
+            text-shadow: 0 0 10px rgba(255, 30, 66, 0.85);
+            letter-spacing: 2px;
+        }
+
+        .led-value.win-counter {
+            color: var(--led-green);
+            text-shadow: 0 0 12px rgba(0, 255, 102, 0.85);
+        }
+
+        .led-value.ticking {
+            color: #ffe66d;
+            text-shadow: 0 0 16px #ffe66d, 0 0 28px #ffbe0b;
+            transform: scale(1.06);
+        }
+
+        /* Arcade Control Deck */
+        .control-deck {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: linear-gradient(180deg, #3b0512 0%, #1d0107 100%);
+            border: 3px solid #d49b27;
+            border-radius: 14px;
+            padding: 10px 14px;
+            box-shadow:
+                0 6px 14px rgba(0,0,0,0.6),
+                inset 0 2px 4px rgba(255, 230, 109, 0.35);
+        }
+
+        .deck-left-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .arcade-btn {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            color: #fff;
+            background: linear-gradient(180deg, #4a4a4a 0%, #222 100%);
+            border: 2px solid #c99e32;
+            border-radius: 8px;
+            padding: 10px 11px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #111, 0 6px 10px rgba(0,0,0,0.6);
+            transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+        }
+
+        .arcade-btn:hover:not(:disabled) {
+            filter: brightness(1.2);
+        }
+
+        .arcade-btn:active:not(:disabled) {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #111, 0 2px 5px rgba(0,0,0,0.6);
+        }
+
+        .arcade-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .arcade-btn.gold-btn {
+            background: linear-gradient(180deg, #f5b700 0%, #b87400 100%);
+            color: #260006;
+            border-color: #fff1a8;
+            box-shadow: 0 4px 0 #5e3a00, 0 6px 12px rgba(0,0,0,0.65);
+        }
+
+        .spin-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 20px;
+            letter-spacing: 2px;
+            color: #fff;
+            background: linear-gradient(180deg, #ff2a55 0%, #c9002b 55%, #80001b 100%);
+            border: 3px solid #ffe66d;
+            border-radius: 12px;
+            padding: 10px 28px;
+            cursor: pointer;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            box-shadow:
+                0 6px 0 #4d0010,
+                0 0 20px rgba(255, 42, 85, 0.65),
+                inset 0 2px 6px rgba(255, 255, 255, 0.45);
+            transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+        }
+
+        .spin-btn:hover:not(:disabled) {
+            filter: brightness(1.15);
+            box-shadow:
+                0 6px 0 #4d0010,
+                0 0 30px rgba(255, 230, 109, 0.85),
+                inset 0 2px 8px rgba(255, 255, 255, 0.6);
+        }
+
+        .spin-btn:active:not(:disabled),
+        .spin-btn.pressed {
+            transform: translateY(5px);
+            box-shadow:
+                0 1px 0 #4d0010,
+                0 0 12px rgba(255, 42, 85, 0.5);
+        }
+
+        .spin-btn:disabled {
+            filter: grayscale(0.45) brightness(0.75);
+            cursor: not-allowed;
+        }
+
+        /* Bottom Coin Chute & Metallic Virtual Coin Tray */
+        .coin-payout-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 2px;
+            position: relative;
+        }
+
+        .coin-chute-lip {
+            width: 190px;
+            height: 16px;
+            background: linear-gradient(90deg, #2a2a2a, #777, #1a1a1a, #777, #2a2a2a);
+            border: 2px solid #d49b27;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.95);
+            position: relative;
+            z-index: 5;
+        }
+
+        .coin-tray {
+            width: 94%;
+            height: 56px;
+            background:
+                radial-gradient(ellipse at 50% 20%, rgba(255, 230, 109, 0.2), transparent 70%),
+                linear-gradient(180deg, #1a1a1a 0%, #3a3a3a 45%, #8c8c8c 82%, #404040 100%);
+            border: 4px solid #c99e32;
+            border-radius: 10px 10px 26px 26px;
+            box-shadow:
+                inset 0 12px 20px rgba(0,0,0,0.9),
+                inset 0 -4px 8px rgba(255, 235, 160, 0.35),
+                0 10px 24px rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 22px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tray-branding {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            font-weight: 800;
+            color: rgba(255, 230, 109, 0.65);
+            letter-spacing: 3px;
+            text-shadow: 0 1px 2px #000;
+            z-index: 2;
+        }
+
+        .tray-coin-pile-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 90%, rgba(255, 190, 11, 0.45), transparent 65%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .slot-cabinet.win-state .tray-coin-pile-glow {
+            opacity: 1;
+        }
+
+        /* Right Side Interactive 3D Mechanical Lever */
+        .lever-assembly {
+            position: absolute;
+            right: -76px;
+            top: 175px;
+            width: 82px;
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            perspective: 700px;
+            cursor: pointer;
+            z-index: 25;
+        }
+
+        .lever-mount {
+            width: 34px;
+            height: 92px;
+            background: linear-gradient(180deg, #555 0%, #bbb 35%, #444 75%, #1c1c1c 100%);
+            border: 3px solid #d49b27;
+            border-left: none;
+            border-radius: 0 16px 16px 0;
+            box-shadow: 8px 10px 22px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        .lever-Pivot-cap {
+            position: absolute;
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 52px;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #996914, #ffe680, #784f07);
+            border: 2px solid #402800;
+            box-shadow: 4px 4px 12px rgba(0,0,0,0.75);
+        }
+
+        .lever-arm-wrapper {
+            position: absolute;
+            left: 24px;
+            bottom: 118px;
+            width: 22px;
+            height: 155px;
             transform-origin: bottom center;
             transform-style: preserve-3d;
+            transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        .lever-knob {
+        .lever-shaft {
+            width: 16px;
+            height: 145px;
+            margin: 0 auto;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #666 0%, #fff 40%, #999 75%, #333 100%);
+            box-shadow: 4px 6px 14px rgba(0,0,0,0.7);
+        }
+
+        .lever-ball {
             position: absolute;
-            top: -20px;
+            top: -34px;
             left: 50%;
             transform: translateX(-50%);
-            width: 38px;
-            height: 38px;
-            background: radial-gradient(circle at 30% 30%, #ff4d4d, #cc0000 70%, #660000 100%);
+            width: 58px;
+            height: 58px;
             border-radius: 50%;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+            background: radial-gradient(circle at 32% 28%, #ff99ac 0%, #ff1e42 32%, #a3001b 72%, #3d000a 100%);
+            border: 2px solid rgba(255, 230, 109, 0.65);
+            box-shadow:
+                0 8px 20px rgba(0, 0, 0, 0.8),
+                0 0 20px rgba(255, 30, 66, 0.55),
+                inset -4px -6px 12px rgba(0, 0, 0, 0.6);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .lever-base {
+        .lever-assembly:hover .lever-ball {
+            box-shadow:
+                0 8px 24px rgba(0, 0, 0, 0.85),
+                0 0 30px rgba(255, 230, 109, 0.9),
+                inset -4px -6px 12px rgba(0, 0, 0, 0.6);
+            transform: translateX(-50%) scale(1.06);
+        }
+
+        .lever-hint {
             position: absolute;
-            bottom: 30px;
-            width: 32px;
-            height: 44px;
-            background: #333;
-            border: 2px solid #666;
-            border-radius: 6px;
-            z-index: -1;
+            bottom: 22px;
+            left: 8px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            color: var(--gold-bright);
+            text-shadow: 0 2px 4px #000;
+            writing-mode: vertical-rl;
+            letter-spacing: 2px;
+            opacity: 0.75;
+            pointer-events: none;
         }
 
-        .pulled .lever {
-            animation: pullLever 0.6s ease-in-out;
+        .lever-assembly.pulled .lever-arm-wrapper {
+            animation: pullRetroLever 0.68s cubic-bezier(0.35, 0, 0.25, 1);
         }
 
-        @keyframes pullLever {
-            0% { transform: rotateX(0deg); }
-            50% { transform: rotateX(60deg); }
-            100% { transform: rotateX(0deg); }
+        @keyframes pullRetroLever {
+            0% { transform: rotateX(0deg) scaleY(1); }
+            42% { transform: rotateX(145deg) scaleY(0.78); }
+            60% { transform: rotateX(145deg) scaleY(0.78); }
+            85% { transform: rotateX(-12deg) scaleY(1.03); }
+            100% { transform: rotateX(0deg) scaleY(1); }
+        }
+
+        /* Responsive scaling on smaller viewports */
+        @media (max-height: 760px), (max-width: 820px) {
+            .casino-stage {
+                transform: scale(0.84);
+            }
+        }
+        @media (max-width: 640px) {
+            .casino-stage {
+                transform: scale(0.62);
+            }
         }
     </style>
 </head>
 <body>
 
-    <a href="index.html" class="back-btn">&#8592;</a>
+    <a href="index.html" class="back-btn" title="Back to Home">&#8592;</a>
 
-    <div class="slot-machine-container">
-        <div class="controls">
-            <button class="arrow-btn" id="up-btn" aria-label="Spin Up">&#9650;</button>
-            <button class="arrow-btn" id="down-btn" aria-label="Spin Down">&#9660;</button>
-        </div>
+    <!-- Fullscreen Physics Particle Canvas for Tumbling Gold Coins -->
+    <canvas id="coin-canvas"></canvas>
 
-        <div class="slot-window">
-            <div class="wheel" id="wheel">
-                <div class="panel" style="--index: 0;"></div>
-                <div class="panel" style="--index: 1;"></div>
-                <div class="panel" style="--index: 2;"></div>
-                <div class="panel" style="--index: 3;"></div>
-                <div class="panel" style="--index: 4;"></div>
+    <!-- Preloaded Audio Elements as Requested -->
+    <audio id="spin-audio" src="sounds/spin.mp3" preload="auto"></audio>
+    <audio id="win-audio" src="sounds/win.mp3" preload="auto"></audio>
+
+    <div class="casino-stage">
+        <div class="slot-cabinet" id="slot-cabinet">
+
+            <!-- Top Chase Lights -->
+            <div class="bulb-strip" id="top-bulbs">
+                <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                <div class="bulb"></div><div class="bulb"></div>
             </div>
-        </div>
 
-        <div class="lever-container" id="lever-container">
-            <div class="lever" id="lever">
-                <div class="lever-knob"></div>
+            <!-- Vintage Casino Marquee Header -->
+            <div class="marquee-header">
+                <div class="marquee-title">JOEY'S GOLDEN SLOTS</div>
+                <div class="marquee-banner" id="status-banner">PULL LEVER OR PRESS SPIN TO PLAY!</div>
             </div>
-            <div class="lever-base"></div>
+
+            <!-- Interactive Paytable Bar (Click any tier to preview/test or check payouts) -->
+            <div class="paytable-bar" id="paytable-bar">
+                <div class="pay-tier jackpot-tier" data-tier="joey" title="3x Joey Icons = Mega Jackpot! (Click to rig next spin)">
+                    <span class="pay-tier-label">3x JOEY</span>
+                    <span class="pay-tier-mult">JACKPOT 100x</span>
+                </div>
+                <div class="pay-tier" data-tier="seven" title="3x Lucky 7s = 40x Bet (Click to rig next spin)">
+                    <span class="pay-tier-label">3x LUCKY 7</span>
+                    <span class="pay-tier-mult">40x BET</span>
+                </div>
+                <div class="pay-tier" data-tier="bar" title="3x Gold BAR = 20x Bet (Click to rig next spin)">
+                    <span class="pay-tier-label">3x BAR</span>
+                    <span class="pay-tier-mult">20x BET</span>
+                </div>
+                <div class="pay-tier" data-tier="bell" title="3x Golden Bell = 12x Bet (Click to rig next spin)">
+                    <span class="pay-tier-label">3x BELL</span>
+                    <span class="pay-tier-mult">12x BET</span>
+                </div>
+                <div class="pay-tier" data-tier="cherry" title="3x Cherries = 6x Bet (Click to rig next spin)">
+                    <span class="pay-tier-label">3x CHERRY</span>
+                    <span class="pay-tier-mult">6x BET</span>
+                </div>
+            </div>
+
+            <!-- 3-Reel Mechanical Window -->
+            <div class="reel-housing" id="reel-housing">
+                <div class="payline-badge left">PAY</div>
+                <div class="payline-bar"></div>
+                <div class="payline-badge right">LINE</div>
+
+                <div class="reels-grid">
+                    <div class="reel-viewport" id="reel-0">
+                        <div class="reel-strip" id="strip-0"></div>
+                    </div>
+                    <div class="reel-viewport" id="reel-1">
+                        <div class="reel-strip" id="strip-1"></div>
+                    </div>
+                    <div class="reel-viewport" id="reel-2">
+                        <div class="reel-strip" id="strip-2"></div>
+                    </div>
+                </div>
+
+                <!-- Jackpot Callout Overlay -->
+                <div class="jackpot-overlay" id="jackpot-overlay">
+                    <div class="jackpot-banner-text" id="overlay-title">JACKPOT!</div>
+                    <div class="jackpot-sub-text" id="overlay-subtitle">+1,000 COINS</div>
+                </div>
+            </div>
+
+            <!-- Digital LED Readouts -->
+            <div class="digital-dash">
+                <div class="led-box" id="credits-box">
+                    <span class="led-label">COINS / CREDITS</span>
+                    <span class="led-value" id="credits-display">0500</span>
+                </div>
+                <div class="led-box">
+                    <span class="led-label">CURRENT BET</span>
+                    <span class="led-value" id="bet-display">010</span>
+                </div>
+                <div class="led-box" id="win-box">
+                    <span class="led-label">WIN PAYOUT</span>
+                    <span class="led-value win-counter" id="win-display">0000</span>
+                </div>
+            </div>
+
+            <!-- Arcade Buttons Control Deck -->
+            <div class="control-deck" id="control-deck">
+                <div class="deck-left-controls">
+                    <button class="arcade-btn" id="bet-down-btn" title="Decrease Bet">BET -</button>
+                    <button class="arcade-btn" id="bet-up-btn" title="Increase Bet">BET +</button>
+                    <button class="arcade-btn gold-btn" id="max-bet-btn" title="Set Max Bet (50)">MAX BET</button>
+                    <button class="arcade-btn" id="add-coins-btn" title="Insert +100 Free Coins">+COINS</button>
+                </div>
+
+                <button class="spin-btn" id="spin-btn">SPIN</button>
+            </div>
+
+            <!-- Bottom Physical Coin Chute & Virtual Tray -->
+            <div class="coin-payout-section">
+                <div class="coin-chute-lip" id="coin-chute"></div>
+                <div class="coin-tray" id="coin-tray">
+                    <div class="tray-coin-pile-glow"></div>
+                    <span class="tray-branding">CHROMESTHESIA CASINO</span>
+                    <span class="tray-branding" id="tray-status">INSERT COIN</span>
+                </div>
+            </div>
+
+            <!-- Bottom Chase Lights -->
+            <div class="bulb-strip">
+                <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                <div class="bulb"></div><div class="bulb"></div><div class="bulb"></div><div class="bulb"></div>
+                <div class="bulb"></div><div class="bulb"></div>
+            </div>
+
+            <!-- Interactive 3D Side Lever -->
+            <div class="lever-assembly" id="lever-assembly" title="Pull Lever to Spin!">
+                <div class="lever-mount">
+                    <div class="lever-Pivot-cap"></div>
+                </div>
+                <div class="lever-arm-wrapper" id="lever-arm">
+                    <div class="lever-shaft"></div>
+                    <div class="lever-ball"></div>
+                </div>
+                <span class="lever-hint">PULL</span>
+            </div>
+
         </div>
     </div>
 
     <script>
-        const wheel = document.getElementById('wheel');
-        const upBtn = document.getElementById('up-btn');
-        const downBtn = document.getElementById('down-btn');
-        const leverContainer = document.getElementById('lever-container');
-        const lever = document.getElementById('lever');
+        /* =====================================================================
+           1. SYMBOL DEFINITIONS & ARTWORK (Joey Icon + Classic Casino Icons)
+           ===================================================================== */
+        const SYMBOLS = [
+            {
+                id: 'joey',
+                name: 'JOEY JACKPOT',
+                multiplier: 100,
+                isJackpot: true,
+                weight: 2,
+                render: () => `
+                    <div class="symbol-graphic">
+                        <div class="joey-symbol-frame">
+                            <img src="images/You%20Should%20know%20these/Slot/joey-slot.png" alt="Joey Jackpot">
+                            <span class="joey-badge">JACKPOT</span>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: 'seven',
+                name: 'LUCKY 777',
+                multiplier: 40,
+                isJackpot: false,
+                weight: 3,
+                render: () => `
+                    <div class="symbol-graphic">
+                        <svg viewBox="0 0 80 80" width="62" height="62">
+                            <defs>
+                                <linearGradient id="sevenGrad" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#ff4d6d"/>
+                                    <stop offset="50%" stop-color="#d90429"/>
+                                    <stop offset="100%" stop-color="#690011"/>
+                                </linearGradient>
+                            </defs>
+                            <path d="M14 12 H68 L36 70 H18 L48 24 H14 Z" fill="url(#sevenGrad)" stroke="#ffe66d" stroke-width="4" stroke-linejoin="round"/>
+                            <path d="M18 15 H62 L58 20 H18 Z" fill="#fff" opacity="0.5"/>
+                        </svg>
+                    </div>
+                `
+            },
+            {
+                id: 'bar',
+                name: 'TRIPLE BAR',
+                multiplier: 20,
+                isJackpot: false,
+                weight: 4,
+                render: () => `
+                    <div class="symbol-graphic">
+                        <svg viewBox="0 0 90 80" width="64" height="58">
+                            <rect x="6" y="16" width="78" height="48" rx="8" fill="#1b1b1b" stroke="#f5b700" stroke-width="4"/>
+                            <rect x="11" y="21" width="68" height="38" rx="5" fill="none" stroke="#ffe66d" stroke-width="1.5"/>
+                            <text x="45" y="48" text-anchor="middle" fill="#ffe66d" font-family="Orbitron, sans-serif" font-weight="900" font-size="24" letter-spacing="2">BAR</text>
+                        </svg>
+                    </div>
+                `
+            },
+            {
+                id: 'bell',
+                name: 'LIBERTY BELL',
+                multiplier: 12,
+                isJackpot: false,
+                weight: 5,
+                render: () => `
+                    <div class="symbol-graphic">
+                        <svg viewBox="0 0 80 80" width="60" height="60">
+                            <defs>
+                                <linearGradient id="bellGrad" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#fff3b0"/>
+                                    <stop offset="45%" stop-color="#f5b700"/>
+                                    <stop offset="100%" stop-color="#8c5800"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="40" cy="13" r="6" fill="#d49b27" stroke="#5c3800" stroke-width="2.5"/>
+                            <path d="M22 54 C22 30, 27 17, 40 17 C53 17, 58 30, 58 54 L66 62 H14 Z" fill="url(#bellGrad)" stroke="#5c3800" stroke-width="3" stroke-linejoin="round"/>
+                            <circle cx="40" cy="65" r="7" fill="#c97a00" stroke="#5c3800" stroke-width="2.5"/>
+                            <path d="M29 26 C32 22, 38 22, 42 22" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/>
+                        </svg>
+                    </div>
+                `
+            },
+            {
+                id: 'cherry',
+                name: 'CHERRY WILD',
+                multiplier: 6,
+                isJackpot: false,
+                weight: 6,
+                render: () => `
+                    <div class="symbol-graphic">
+                        <svg viewBox="0 0 80 80" width="60" height="60">
+                            <path d="M26 48 C28 28, 38 18, 52 12 M54 50 C52 32, 46 22, 52 12" stroke="#38b000" stroke-width="4" fill="none" stroke-linecap="round"/>
+                            <path d="M50 12 C58 8, 68 14, 62 22 C54 24, 48 18, 50 12 Z" fill="#38b000" stroke="#1b4332" stroke-width="2"/>
+                            <circle cx="25" cy="54" r="15" fill="#d90429" stroke="#590010" stroke-width="3"/>
+                            <circle cx="20" cy="49" r="4" fill="#ffccd5"/>
+                            <circle cx="53" cy="56" r="15" fill="#ef233c" stroke="#590010" stroke-width="3"/>
+                            <circle cx="48" cy="51" r="4" fill="#ffccd5"/>
+                        </svg>
+                    </div>
+                `
+            }
+        ];
 
-        let currentRotation = 0;
+        const SYMBOL_MAP = Object.fromEntries(SYMBOLS.map(s => [s.id, s]));
 
-        upBtn.addEventListener('click', () => {
-            currentRotation -= 72;
-            wheel.style.transition = 'transform 0.3s cubic-bezier(0.15, 0.85, 0.15, 1)';
-            wheel.style.transform = `rotateX(${currentRotation}deg)`;
+        /* =====================================================================
+           2. AUDIO ENGINE (HTML5 Audio files + Web Audio Retro Synthesizer)
+           ===================================================================== */
+        const spinAudioEl = document.getElementById('spin-audio');
+        const winAudioEl = document.getElementById('win-audio');
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSpinAudio() {
+            // Attempt to play sounds/spin.mp3 as specified
+            if (spinAudioEl) {
+                spinAudioEl.currentTime = 0;
+                spinAudioEl.loop = true;
+                spinAudioEl.play().catch(() => {
+                    // Fallback handled by procedural reel ticks below
+                });
+            }
+        }
+
+        function stopSpinAudio() {
+            if (spinAudioEl) {
+                spinAudioEl.pause();
+                spinAudioEl.currentTime = 0;
+            }
+        }
+
+        function playWinAudio(isJackpot) {
+            if (winAudioEl) {
+                winAudioEl.currentTime = 0;
+                winAudioEl.play().catch(() => {});
+            }
+            // Layer crisp arcade fanfare
+            const ctx = getAudioContext();
+            if (!ctx) return;
+
+            const notes = isJackpot
+                ? [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50, 1318.51, 1567.98]
+                : [523.25, 659.25, 783.99, 1046.50];
+
+            notes.forEach((freq, idx) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = isJackpot ? 'sawtooth' : 'triangle';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.09);
+
+                gain.gain.setValueAtTime(0.14, ctx.currentTime + idx * 0.09);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.09 + 0.24);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + idx * 0.09);
+                osc.stop(ctx.currentTime + idx * 0.09 + 0.25);
+            });
+        }
+
+        function playLeverClunk() {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(48, ctx.currentTime + 0.14);
+            gain.gain.setValueAtTime(0.22, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.16);
+        }
+
+        function playReelTick(pitchOffset = 0) {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(220 + pitchOffset, ctx.currentTime);
+            gain.gain.setValueAtTime(0.045, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.025);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.028);
+        }
+
+        function playReelStopThud(reelIndex) {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            const baseFreq = 110 + reelIndex * 22;
+            osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(38, ctx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.28, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.13);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.14);
+        }
+
+        function playCoinClink() {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            const base = 1900 + Math.random() * 700;
+            osc.frequency.setValueAtTime(base, ctx.currentTime);
+            osc.frequency.setValueAtTime(base * 1.32, ctx.currentTime + 0.035);
+            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.13);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.14);
+        }
+
+        /* =====================================================================
+           3. REEL SETUP & SEQUENTIAL BLUR SPIN MECHANICS
+           ===================================================================== */
+        const CELL_HEIGHT = 78; // 3 visible rows = 234px viewport height
+        const STRIP_LENGTH = 36; // Number of symbols per strip loop
+        const reels = [
+            { index: 0, stripEl: document.getElementById('strip-0'), sequence: [] },
+            { index: 1, stripEl: document.getElementById('strip-1'), sequence: [] },
+            { index: 2, stripEl: document.getElementById('strip-2'), sequence: [] }
+        ];
+
+        let credits = 500;
+        let currentBet = 10;
+        let isSpinning = false;
+        let forcedNextSymbol = null; // Allows clicking paytable tiers to test any win/jackpot
+
+        const creditsDisplay = document.getElementById('credits-display');
+        const betDisplay = document.getElementById('bet-display');
+        const winDisplay = document.getElementById('win-display');
+        const statusBanner = document.getElementById('status-banner');
+        const slotCabinet = document.getElementById('slot-cabinet');
+        const spinBtn = document.getElementById('spin-btn');
+        const leverAssembly = document.getElementById('lever-assembly');
+        const jackpotOverlay = document.getElementById('jackpot-overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlaySubtitle = document.getElementById('overlay-subtitle');
+        const trayStatus = document.getElementById('tray-status');
+
+        function pickWeightedSymbol() {
+            const totalWeight = SYMBOLS.reduce((acc, s) => acc + s.weight, 0);
+            let r = Math.random() * totalWeight;
+            for (const sym of SYMBOLS) {
+                if (r < sym.weight) return sym.id;
+                r -= sym.weight;
+            }
+            return SYMBOLS[SYMBOLS.length - 1].id;
+        }
+
+        function buildReelStrip(reel, middleSymbolId, topSymbolId, bottomSymbolId) {
+            const seq = [];
+            for (let i = 0; i < STRIP_LENGTH; i++) {
+                seq.push(pickWeightedSymbol());
+            }
+            // Target landing window is near the top of the strip (indices 1, 2, 3)
+            // because spinning moves the strip downward (from large negative Y to -CELL_HEIGHT)
+            seq[1] = topSymbolId || pickWeightedSymbol();
+            seq[2] = middleSymbolId || pickWeightedSymbol(); // Center Payline!
+            seq[3] = bottomSymbolId || pickWeightedSymbol();
+
+            reel.sequence = seq;
+            reel.stripEl.innerHTML = seq
+                .map((symId, idx) => `
+                    <div class="symbol-cell" data-idx="${idx}" data-symbol="${symId}">
+                        ${SYMBOL_MAP[symId].render()}
+                    </div>
+                `)
+                .join('');
+        }
+
+        function initReels() {
+            // Start with an inviting display showing Joey in the center
+            buildReelStrip(reels[0], 'joey', 'cherry', 'seven');
+            buildReelStrip(reels[1], 'joey', 'bell', 'bar');
+            buildReelStrip(reels[2], 'joey', 'seven', 'cherry');
+
+            reels.forEach(r => {
+                r.stripEl.style.transition = 'none';
+                r.stripEl.style.transform = `translateY(-${CELL_HEIGHT}px)`;
+            });
+            updateDigitalDisplays(credits, currentBet, 0);
+        }
+
+        function formatDigits(num, pad = 4) {
+            return Math.max(0, Math.floor(num)).toString().padStart(pad, '0');
+        }
+
+        function updateDigitalDisplays(cred, bet, win) {
+            creditsDisplay.textContent = formatDigits(cred, 4);
+            betDisplay.textContent = formatDigits(bet, 3);
+            if (win !== null) {
+                winDisplay.textContent = formatDigits(win, 4);
+            }
+        }
+
+        // Determine outcome with exciting casino odds (plus support for rigged paytable click)
+        function rollSpinOutcome() {
+            if (forcedNextSymbol) {
+                const sym = forcedNextSymbol;
+                forcedNextSymbol = null;
+                return [sym, sym, sym];
+            }
+
+            const luckRoll = Math.random();
+            // ~38% chance of 3-of-a-kind horizontal alignment so gameplay feels rewarding and lively
+            if (luckRoll < 0.08) {
+                return ['joey', 'joey', 'joey']; // JACKPOT!
+            } else if (luckRoll < 0.38) {
+                const nonJackpot = ['seven', 'bar', 'bell', 'cherry'];
+                const pick = nonJackpot[Math.floor(Math.random() * nonJackpot.length)];
+                return [pick, pick, pick];
+            } else {
+                return [pickWeightedSymbol(), pickWeightedSymbol(), pickWeightedSymbol()];
+            }
+        }
+
+        function triggerSpin() {
+            if (isSpinning) return;
+            if (credits < currentBet) {
+                statusBanner.textContent = 'OUT OF COINS! CLICK +COINS TO RELOAD!';
+                return;
+            }
+
+            isSpinning = true;
+            spinBtn.disabled = true;
+            slotCabinet.classList.remove('win-state', 'jackpot-state');
+            jackpotOverlay.classList.remove('visible');
+            document.querySelectorAll('.pay-tier').forEach(el => el.classList.remove('active-win'));
+
+            // Animate Lever Pull
+            leverAssembly.classList.remove('pulled');
+            void leverAssembly.offsetWidth;
+            leverAssembly.classList.add('pulled');
+            playLeverClunk();
+
+            // Deduct Bet
+            credits -= currentBet;
+            updateDigitalDisplays(credits, currentBet, 0);
+            statusBanner.textContent = 'REELS SPINNING... GOOD LUCK!';
+            trayStatus.textContent = 'GOOD LUCK!';
+
+            const targetCenterSymbols = rollSpinOutcome();
+            playSpinAudio();
+
+            // Periodic mechanical tick sound while spinning
+            let tickCount = 0;
+            const tickTimer = setInterval(() => {
+                playReelTick((tickCount % 4) * 18);
+                tickCount++;
+            }, 65);
+
+            // Spin each reel from bottom to top and stop sequentially left-to-right
+            const stopDelays = [1350, 2050, 2750];
+
+            reels.forEach((reel, idx) => {
+                // Preserve current visible symbols at bottom of strip for seamless launch
+                const prevTop = reel.sequence[1];
+                const prevMid = reel.sequence[2];
+                const prevBot = reel.sequence[3];
+
+                buildReelStrip(reel, targetCenterSymbols[idx], pickWeightedSymbol(), pickWeightedSymbol());
+
+                // Put previous symbols at the bottom of the new strip so start position matches
+                const cells = reel.stripEl.children;
+                const bottomStartIdx = STRIP_LENGTH - 4;
+                cells[bottomStartIdx].innerHTML = SYMBOL_MAP[prevTop].render();
+                cells[bottomStartIdx + 1].innerHTML = SYMBOL_MAP[prevMid].render();
+                cells[bottomStartIdx + 2].innerHTML = SYMBOL_MAP[prevBot].render();
+
+                // Position strip at the bottom immediately
+                reel.stripEl.style.transition = 'none';
+                reel.stripEl.classList.add('spinning-blur');
+                reel.stripEl.style.transform = `translateY(-${bottomStartIdx * CELL_HEIGHT}px)`;
+
+                // Force reflow then launch high-speed spin to index 1 (so index 2 is in the middle row)
+                void reel.stripEl.offsetHeight;
+
+                const durationMs = stopDelays[idx];
+                reel.stripEl.style.transition = `transform ${durationMs}ms cubic-bezier(0.12, 0.8, 0.18, 1.035)`;
+                reel.stripEl.style.transform = `translateY(-${CELL_HEIGHT}px)`;
+
+                setTimeout(() => {
+                    reel.stripEl.classList.remove('spinning-blur');
+                    playReelStopThud(idx);
+
+                    if (idx === reels.length - 1) {
+                        clearInterval(tickTimer);
+                        stopSpinAudio();
+                        evaluateSpinResult(targetCenterSymbols);
+                    }
+                }, durationMs);
+            });
+        }
+
+        function evaluateSpinResult(centerSymbols) {
+            const [s0, s1, s2] = centerSymbols;
+            const isThreeMatch = (s0 === s1 && s1 === s2);
+
+            if (isThreeMatch) {
+                const winningSymbol = SYMBOL_MAP[s0];
+                const payout = currentBet * winningSymbol.multiplier;
+                const isJackpot = winningSymbol.isJackpot;
+
+                // Highlight winning payline cells
+                reels.forEach(r => {
+                    const centerCell = r.stripEl.children[2];
+                    if (centerCell) centerCell.classList.add('winner-cell');
+                });
+
+                // Highlight paytable tier
+                const tierEl = document.querySelector(`.pay-tier[data-tier="${s0}"]`);
+                if (tierEl) tierEl.classList.add('active-win');
+
+                slotCabinet.classList.add('win-state');
+                if (isJackpot) {
+                    slotCabinet.classList.add('jackpot-state');
+                    statusBanner.textContent = '🎉 JACKPOT! TRIPLE JOEY ALIGNED! 🎉';
+                    overlayTitle.textContent = 'JACKPOT!';
+                    overlaySubtitle.textContent = `+${payout.toLocaleString()} COINS!`;
+                } else {
+                    statusBanner.textContent = `WINNER! 3x ${winningSymbol.name} PAYS +${payout} COINS!`;
+                    overlayTitle.textContent = `${winningSymbol.name}!`;
+                    overlaySubtitle.textContent = `+${payout.toLocaleString()} COINS`;
+                }
+
+                jackpotOverlay.classList.add('visible');
+                trayStatus.textContent = `PAYING +${payout}`;
+
+                // Play payout sound and launch physical coin tumble + ticking counter
+                playWinAudio(isJackpot);
+                const coinBurstCount = isJackpot ? 130 : Math.min(95, Math.max(40, Math.floor(payout / 2)));
+                spawnCoinTumble(coinBurstCount, isJackpot);
+                animateCounterTickUp(credits, credits + payout, payout, () => {
+                    credits += payout;
+                    isSpinning = false;
+                    spinBtn.disabled = false;
+                });
+            } else {
+                statusBanner.textContent = 'NO MATCH — PULL LEVER TO TRY AGAIN!';
+                trayStatus.textContent = 'TRY AGAIN';
+                isSpinning = false;
+                spinBtn.disabled = false;
+            }
+        }
+
+        /* =====================================================================
+           4. DIGITAL COIN COUNTER TICK-UP ANIMATION
+           ===================================================================== */
+        function animateCounterTickUp(startCredits, endCredits, totalWin, onComplete) {
+            const duration = Math.min(2600, Math.max(1100, totalWin * 4));
+            const startTime = performance.now();
+
+            creditsDisplay.classList.add('ticking');
+            winDisplay.classList.add('ticking');
+
+            function step(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(1, elapsed / duration);
+                // Ease out quad
+                const eased = 1 - (1 - progress) * (1 - progress);
+
+                const currentCred = Math.floor(startCredits + (endCredits - startCredits) * eased);
+                const currentWin = Math.floor(totalWin * eased);
+
+                updateDigitalDisplays(currentCred, currentBet, currentWin);
+
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    updateDigitalDisplays(endCredits, currentBet, totalWin);
+                    creditsDisplay.classList.remove('ticking');
+                    winDisplay.classList.remove('ticking');
+                    if (onComplete) onComplete();
+                }
+            }
+
+            requestAnimationFrame(step);
+        }
+
+        /* =====================================================================
+           5. 2D PHYSICS PARTICLE ENGINE FOR TUMBLING GOLD COINS
+           ===================================================================== */
+        const canvas = document.getElementById('coin-canvas');
+        const ctx = canvas.getContext('2d');
+        let coins = [];
+        let physicsAnimationId = null;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function getColliders() {
+            const deckRect = document.getElementById('control-deck').getBoundingClientRect();
+            const trayRect = document.getElementById('coin-tray').getBoundingClientRect();
+            const chuteRect = document.getElementById('coin-chute').getBoundingClientRect();
+            return { deckRect, trayRect, chuteRect };
+        }
+
+        function spawnCoinTumble(count, isJackpot) {
+            const { chuteRect, reelRect } = (() => {
+                return {
+                    chuteRect: document.getElementById('coin-chute').getBoundingClientRect(),
+                    reelRect: document.getElementById('reel-housing').getBoundingClientRect()
+                };
+            })();
+
+            for (let i = 0; i < count; i++) {
+                const fromReelBurst = isJackpot && i % 3 === 0;
+                const spawnX = fromReelBurst
+                    ? reelRect.left + reelRect.width * (0.2 + Math.random() * 0.6)
+                    : chuteRect.left + chuteRect.width * (0.15 + Math.random() * 0.7);
+                const spawnY = fromReelBurst
+                    ? reelRect.top + reelRect.height * 0.6
+                    : chuteRect.top + 6;
+
+                coins.push({
+                    x: spawnX,
+                    y: spawnY,
+                    vx: (Math.random() - 0.5) * (fromReelBurst ? 13 : 9.5),
+                    vy: -(2 + Math.random() * (fromReelBurst ? 10 : 6.5)),
+                    radius: 11 + Math.random() * 4,
+                    angle: Math.random() * Math.PI * 2,
+                    vAngle: (Math.random() - 0.5) * 0.35,
+                    spinPhase: Math.random() * Math.PI * 2,
+                    spinSpeed: 0.14 + Math.random() * 0.18,
+                    bounces: 0,
+                    maxBounces: 3 + Math.floor(Math.random() * 3),
+                    delay: i * (isJackpot ? 16 : 22),
+                    born: performance.now(),
+                    alpha: 1,
+                    settledInTray: false
+                });
+            }
+
+            if (!physicsAnimationId) {
+                physicsAnimationId = requestAnimationFrame(updateCoinPhysics);
+            }
+        }
+
+        function updateCoinPhysics(now) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const { deckRect, trayRect } = getColliders();
+            const gravity = 0.48;
+
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const c = coins[i];
+                if (now - c.born < c.delay) continue;
+
+                c.vy += gravity;
+                c.x += c.vx;
+                c.y += c.vy;
+                c.angle += c.vAngle;
+                c.spinPhase += c.spinSpeed;
+
+                // Bounce off the Control Deck ledge if falling from upper housing
+                if (
+                    c.vy > 0 &&
+                    c.bounces === 0 &&
+                    c.x > deckRect.left &&
+                    c.x < deckRect.right &&
+                    c.y + c.radius >= deckRect.top &&
+                    c.y - c.radius <= deckRect.top + 16
+                ) {
+                    c.y = deckRect.top - c.radius;
+                    c.vy = -c.vy * 0.58;
+                    c.vx += (Math.random() - 0.5) * 4;
+                    c.bounces++;
+                    if (Math.random() < 0.35) playCoinClink();
+                }
+
+                // Bounce inside the Virtual Coin Tray
+                const trayFloorY = trayRect.bottom - 10;
+                if (
+                    c.vy > 0 &&
+                    c.x >= trayRect.left + 8 &&
+                    c.x <= trayRect.right - 8 &&
+                    c.y + c.radius >= trayFloorY &&
+                    c.y - c.radius <= trayFloorY + 24 &&
+                    c.bounces < c.maxBounces
+                ) {
+                    c.y = trayFloorY - c.radius;
+                    c.vy = -c.vy * (0.45 + Math.random() * 0.18);
+                    c.vx *= 0.78;
+                    c.bounces++;
+
+                    if (Math.random() < 0.42) {
+                        playCoinClink();
+                    }
+
+                    // Keep coins contained inside tray walls
+                    if (c.x < trayRect.left + 24) {
+                        c.x = trayRect.left + 24;
+                        c.vx = Math.abs(c.vx) * 0.7;
+                    } else if (c.x > trayRect.right - 24) {
+                        c.x = trayRect.right - 24;
+                        c.vx = -Math.abs(c.vx) * 0.7;
+                    }
+                }
+
+                // Fade out after resting in tray or falling off screen
+                if (c.bounces >= c.maxBounces && Math.abs(c.vy) < 1.6) {
+                    c.vy = 0;
+                    c.vx *= 0.9;
+                    c.alpha -= 0.018;
+                }
+
+                if (c.y - c.radius > canvas.height + 40 || c.alpha <= 0) {
+                    coins.splice(i, 1);
+                    continue;
+                }
+
+                // Draw 3D Tumbling Gold Coin
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, c.alpha);
+                ctx.translate(c.x, c.y);
+                ctx.rotate(c.angle);
+
+                const scaleY = Math.max(0.22, Math.abs(Math.cos(c.spinPhase)));
+                ctx.scale(1, scaleY);
+
+                // Coin rim thickness
+                ctx.beginPath();
+                ctx.arc(0, 3, c.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#8c5800';
+                ctx.fill();
+
+                // Coin face gradient
+                const grad = ctx.createRadialGradient(-c.radius * 0.3, -c.radius * 0.3, 1, 0, 0, c.radius);
+                grad.addColorStop(0, '#fff9d2');
+                grad.addColorStop(0.45, '#ffd000');
+                grad.addColorStop(0.85, '#d48b00');
+                grad.addColorStop(1, '#7a4900');
+
+                ctx.beginPath();
+                ctx.arc(0, 0, c.radius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.lineWidth = 1.6;
+                ctx.strokeStyle = '#fff3b0';
+                ctx.stroke();
+
+                // Inner embossed ring & '$' emblem
+                ctx.beginPath();
+                ctx.arc(0, 0, c.radius * 0.72, 0, Math.PI * 2);
+                ctx.strokeStyle = '#995800';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#7a4400';
+                ctx.font = `bold ${Math.round(c.radius * 0.95)}px Orbitron, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('$', 0, 1);
+
+                ctx.restore();
+            }
+
+            if (coins.length > 0) {
+                physicsAnimationId = requestAnimationFrame(updateCoinPhysics);
+            } else {
+                physicsAnimationId = null;
+            }
+        }
+
+        /* =====================================================================
+           6. CONTROLS & EVENT LISTENERS
+           ===================================================================== */
+        spinBtn.addEventListener('click', triggerSpin);
+        leverAssembly.addEventListener('click', triggerSpin);
+
+        document.getElementById('bet-down-btn').addEventListener('click', () => {
+            if (isSpinning) return;
+            currentBet = Math.max(5, currentBet - 5);
+            updateDigitalDisplays(credits, currentBet, null);
+            playReelTick(40);
         });
 
-        downBtn.addEventListener('click', () => {
-            currentRotation += 72;
-            wheel.style.transition = 'transform 0.3s cubic-bezier(0.15, 0.85, 0.15, 1)';
-            wheel.style.transform = `rotateX(${currentRotation}deg)`;
+        document.getElementById('bet-up-btn').addEventListener('click', () => {
+            if (isSpinning) return;
+            currentBet = Math.min(100, Math.min(credits || 10, currentBet + 5));
+            updateDigitalDisplays(credits, currentBet, null);
+            playReelTick(90);
         });
 
-        leverContainer.addEventListener('click', () => {
-            leverContainer.classList.add('pulled');
-
-            wheel.style.transition = 'transform 3s cubic-bezier(0.15, 0.85, 0.15, 1)';
-            const randomNotches = Math.floor(Math.random() * 5) * 72;
-            currentRotation += (360 * 5) + randomNotches;
-            wheel.style.transform = `rotateX(${currentRotation}deg)`;
+        document.getElementById('max-bet-btn').addEventListener('click', () => {
+            if (isSpinning) return;
+            currentBet = Math.min(100, Math.max(10, Math.min(50, credits)));
+            updateDigitalDisplays(credits, currentBet, null);
+            playReelTick(140);
         });
 
-        lever.addEventListener('animationend', () => {
-            leverContainer.classList.remove('pulled');
+        document.getElementById('add-coins-btn').addEventListener('click', () => {
+            credits += 100;
+            updateDigitalDisplays(credits, currentBet, null);
+            playCoinClink();
+            statusBanner.textContent = '+100 COINS INSERTED! READY TO SPIN!';
         });
+
+        // Clicking a Paytable Tier queues that 3-of-a-kind win on the next spin for easy testing!
+        document.querySelectorAll('.pay-tier').forEach(tier => {
+            tier.addEventListener('click', () => {
+                if (isSpinning) return;
+                const symId = tier.getAttribute('data-tier');
+                forcedNextSymbol = symId;
+                document.querySelectorAll('.pay-tier').forEach(el => el.classList.remove('active-win'));
+                tier.classList.add('active-win');
+                statusBanner.textContent = `LUCKY CHARM ACTIVE: NEXT SPIN LOCKED FOR 3x ${SYMBOL_MAP[symId].name}!`;
+                playCoinClink();
+            });
+        });
+
+        // Spacebar shortcut to pull the lever / spin
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !isSpinning) {
+                e.preventDefault();
+                spinBtn.classList.add('pressed');
+                triggerSpin();
+                setTimeout(() => spinBtn.classList.remove('pressed'), 180);
+            }
+        });
+
+        initReels();
     </script>
 </body>
 </html>

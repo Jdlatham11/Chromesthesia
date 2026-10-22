@@ -1,0 +1,2152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minesweeper // Step-Sequencer</title>
+  <style>
+    :root {
+      --cell-size: 38px;
+      --cols: 16;
+      --rows: 10;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100vh;
+      font-family: "Tahoma", "MS Sans Serif", "Segoe UI", sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.6s ease, color 0.5s ease;
+    }
+
+    /* Fullscreen rotating disco background canvas */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.disco-active #bg-canvas {
+      opacity: 1;
+    }
+
+    body.disco-active {
+      background: conic-gradient(
+        from var(--bg-angle, 0deg) at 50% 25%,
+        #130026,
+        #3a0ca3,
+        #f72585,
+        #4cc9f0,
+        #7209b7,
+        #06d6a0,
+        #ffbe0b,
+        #130026
+      );
+      animation: discoHueRotate 8s linear infinite;
+    }
+
+    @keyframes discoHueRotate {
+      0% {
+        filter: hue-rotate(0deg);
+      }
+      100% {
+        filter: hue-rotate(360deg);
+      }
+    }
+
+    /* Keep main wrapper unaffected by body hue-rotate if we want sharp neon colors,
+       or animate the background layer separately so neon colors stay intentional */
+    #disco-backdrop {
+      position: fixed;
+      inset: -50%;
+      width: 200%;
+      height: 200%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0;
+      background: conic-gradient(
+        from 0deg at 50% 50%,
+        #ff007f,
+        #7928ca,
+        #00d4ff,
+        #00ff87,
+        #ffea00,
+        #ff0055,
+        #7928ca,
+        #ff007f
+      );
+      filter: blur(55px) saturate(1.8) brightness(0.42);
+      transform: rotate(0deg);
+      transition: opacity 0.7s ease;
+    }
+
+    body.disco-active #disco-backdrop {
+      opacity: 1;
+      animation: spinDiscoBackdrop 10s linear infinite;
+    }
+
+    body.game-over #disco-backdrop {
+      animation-play-state: paused !important;
+      filter: blur(55px) saturate(0.25) brightness(0.15);
+    }
+
+    @keyframes spinDiscoBackdrop {
+      from {
+        transform: rotate(0deg) scale(1.1);
+      }
+      to {
+        transform: rotate(360deg) scale(1.1);
+      }
+    }
+
+    /* Animated Disco Ball Assembly */
+    #disco-ball-rig {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%, -220px);
+      z-index: 15;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    body.disco-active #disco-ball-rig {
+      transform: translate(-50%, 0px);
+    }
+
+    .disco-cord {
+      width: 4px;
+      height: 28px;
+      background: linear-gradient(90deg, #555, #eee, #333);
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+    }
+
+    #disco-ball-canvas {
+      width: 112px;
+      height: 112px;
+      border-radius: 50%;
+      filter: drop-shadow(0 0 22px rgba(255, 255, 255, 0.95))
+              drop-shadow(0 0 45px rgba(0, 240, 255, 0.8))
+              drop-shadow(0 0 70px rgba(255, 0, 160, 0.7));
+    }
+
+    body.game-over #disco-ball-canvas {
+      filter: drop-shadow(0 0 8px rgba(255, 0, 55, 0.4)) grayscale(0.85) brightness(0.5);
+    }
+
+    /* Main Stage Container */
+    .stage-container {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 90px;
+      margin-bottom: 24px;
+    }
+
+    /* Hidden, empty CSS container div positioned above the game board for future animated dancing characters */
+    #dancing-characters-container {
+      display: none;
+      width: 100%;
+      min-height: 96px;
+      margin-bottom: 12px;
+      position: relative;
+      justify-content: center;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+
+    /* Classic Minesweeper Window Frame */
+    .minesweeper-window {
+      background-color: #c0c0c0;
+      padding: 12px;
+      border-top: 4px solid #ffffff;
+      border-left: 4px solid #ffffff;
+      border-right: 4px solid #808080;
+      border-bottom: 4px solid #808080;
+      box-shadow: 2px 2px 0 #000000;
+      transition:
+        background-color 0.45s ease,
+        border-color 0.45s ease,
+        box-shadow 0.45s ease;
+    }
+
+    body.disco-active .minesweeper-window {
+      background-color: #080514;
+      border-top: 3px solid #00f5ff;
+      border-left: 3px solid #00f5ff;
+      border-right: 3px solid #ff00a0;
+      border-bottom: 3px solid #ff00a0;
+      box-shadow:
+        0 0 20px rgba(0, 245, 255, 0.45),
+        0 0 45px rgba(255, 0, 160, 0.35),
+        inset 0 0 20px rgba(0, 245, 255, 0.15);
+    }
+
+    body.game-over.disco-active .minesweeper-window {
+      border-color: #ff1e42;
+      box-shadow: 0 0 25px rgba(255, 30, 66, 0.5);
+    }
+
+    /* Top Header Bar (Counters + Smiley Reset) */
+    .hud-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      margin-bottom: 12px;
+      background-color: #c0c0c0;
+      border-top: 3px solid #808080;
+      border-left: 3px solid #808080;
+      border-right: 3px solid #ffffff;
+      border-bottom: 3px solid #ffffff;
+      transition: all 0.45s ease;
+    }
+
+    body.disco-active .hud-header {
+      background-color: #0f0826;
+      border-top: 2px solid #7b2cbf;
+      border-left: 2px solid #7b2cbf;
+      border-right: 2px solid #00f5ff;
+      border-bottom: 2px solid #00f5ff;
+      box-shadow: inset 0 0 12px rgba(123, 44, 191, 0.45);
+    }
+
+    /* 7-Segment Style Digital Readout */
+    .led-counter {
+      background-color: #000000;
+      color: #ff0000;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      padding: 2px 6px;
+      min-width: 72px;
+      text-align: right;
+      border-top: 2px solid #808080;
+      border-left: 2px solid #808080;
+      border-right: 2px solid #ffffff;
+      border-bottom: 2px solid #ffffff;
+      line-height: 1.1;
+      transition: all 0.45s ease;
+    }
+
+    body.disco-active .led-counter {
+      background-color: #05020d;
+      color: #00ffcc;
+      border-color: #00f5ff;
+      text-shadow: 0 0 8px #00ffcc, 0 0 16px #00f5ff;
+    }
+
+    body.game-over.disco-active .led-counter {
+      color: #ff1744;
+      border-color: #ff1744;
+      text-shadow: 0 0 8px #ff1744;
+    }
+
+    /* Classic Smiley Reset Button */
+    #reset-btn {
+      width: 44px;
+      height: 44px;
+      padding: 2px;
+      background-color: #c0c0c0;
+      border-top: 3px solid #ffffff;
+      border-left: 3px solid #ffffff;
+      border-right: 3px solid #808080;
+      border-bottom: 3px solid #808080;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+      transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    #reset-btn:active {
+      border-top: 3px solid #808080;
+      border-left: 3px solid #808080;
+      border-right: 3px solid #ffffff;
+      border-bottom: 3px solid #ffffff;
+      transform: translate(1px, 1px);
+    }
+
+    body.disco-active #reset-btn {
+      background-color: #160933;
+      border-top: 2px solid #00f5ff;
+      border-left: 2px solid #00f5ff;
+      border-right: 2px solid #ff00a0;
+      border-bottom: 2px solid #ff00a0;
+      box-shadow: 0 0 12px rgba(0, 245, 255, 0.5);
+    }
+
+    body.disco-active:not(.game-over) #smiley-svg {
+      animation: djBounce 0.46875s ease-in-out infinite alternate;
+    }
+
+    @keyframes djBounce {
+      from {
+        transform: translateY(-1px) scale(1);
+      }
+      to {
+        transform: translateY(2px) scale(1.06);
+      }
+    }
+
+    /* Playfield Row: Grid + Wurlitzer Vertical Slider */
+    .playfield-row {
+      display: flex;
+      align-items: stretch;
+      gap: 12px;
+      position: relative;
+    }
+
+    /* Grid Wrapper & Sequencer Time Bar */
+    .board-wrapper {
+      position: relative;
+      border-top: 4px solid #808080;
+      border-left: 4px solid #808080;
+      border-right: 4px solid #ffffff;
+      border-bottom: 4px solid #ffffff;
+      background-color: #808080;
+      overflow: hidden;
+      transition: all 0.45s ease;
+    }
+
+    /* Sleek Vertical Wurlitzer Slider Bar (to the right of the grid) */
+    #wurlitzer-slider {
+      width: 46px;
+      position: relative;
+      background: linear-gradient(180deg, #b5b5b5 0%, #dcdcdc 50%, #a8a8a8 100%);
+      border-top: 4px solid #808080;
+      border-left: 4px solid #808080;
+      border-right: 4px solid #ffffff;
+      border-bottom: 4px solid #ffffff;
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      cursor: ns-resize;
+      transition:
+        background 0.45s ease,
+        border-color 0.45s ease,
+        box-shadow 0.45s ease;
+    }
+
+    body.disco-active #wurlitzer-slider {
+      background: linear-gradient(180deg, #1b0636 0%, #090316 50%, #14052b 100%);
+      border-top: 3px solid #00f5ff;
+      border-left: 2px solid #7b2cbf;
+      border-right: 3px solid #ff00a0;
+      border-bottom: 3px solid #00f5ff;
+      box-shadow:
+        0 0 18px rgba(0, 245, 255, 0.35),
+        inset 0 0 14px rgba(255, 0, 160, 0.28);
+    }
+
+    body.game-over.disco-active #wurlitzer-slider {
+      border-color: #ff1744;
+      box-shadow: 0 0 12px rgba(255, 23, 68, 0.4);
+      filter: grayscale(0.75);
+    }
+
+    /* Center glowing groove track inside the Wurlitzer slider */
+    .wurlitzer-track-line {
+      position: absolute;
+      top: 10px;
+      bottom: 10px;
+      left: 50%;
+      width: 4px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: rgba(60, 60, 60, 0.45);
+      pointer-events: none;
+      z-index: 1;
+      transition: background 0.45s ease, box-shadow 0.45s ease;
+    }
+
+    body.disco-active .wurlitzer-track-line {
+      background: linear-gradient(
+        180deg,
+        #00f5ff 0%,
+        #ff00a0 50%,
+        #ffbe0b 100%
+      );
+      box-shadow: 0 0 10px rgba(0, 245, 255, 0.65);
+    }
+
+    /* Scale degree tick rows inside the slider */
+    .wurlitzer-ticks {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      pointer-events: none;
+      z-index: 2;
+      padding: 2px 0;
+    }
+
+    .wurlitzer-tick {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+      font-size: 9px;
+      font-weight: 800;
+      color: rgba(30, 30, 30, 0.55);
+      letter-spacing: 0.3px;
+      transition: color 0.3s ease, text-shadow 0.3s ease;
+    }
+
+    .wurlitzer-tick::before,
+    .wurlitzer-tick::after {
+      content: "";
+      width: 5px;
+      height: 1.5px;
+      background: currentColor;
+      opacity: 0.6;
+    }
+
+    body.disco-active .wurlitzer-tick {
+      color: rgba(0, 245, 255, 0.55);
+    }
+
+    body.disco-active .wurlitzer-tick.active-degree {
+      color: #ffffff;
+      text-shadow: 0 0 8px #ffbe0b, 0 0 14px #ff00a0;
+    }
+
+    /* Brightly Colored Mouse-Tracking Indicator */
+    #wurlitzer-indicator {
+      position: absolute;
+      top: 0;
+      left: 3px;
+      right: 3px;
+      height: 22px;
+      border-radius: 11px;
+      background: linear-gradient(90deg, #ff007f 0%, #ffbe0b 50%, #00f5ff 100%);
+      border: 2px solid #ffffff;
+      box-shadow:
+        0 0 14px rgba(255, 190, 11, 0.9),
+        0 0 26px rgba(255, 0, 127, 0.8),
+        inset 0 0 6px rgba(255, 255, 255, 0.9);
+      transform: translate3d(0, 179px, 0);
+      pointer-events: none;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 900;
+      color: #090314;
+      letter-spacing: 0.4px;
+      text-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+      transition:
+        box-shadow 0.12s ease,
+        filter 0.12s ease,
+        background 0.25s ease;
+      will-change: transform;
+    }
+
+    #wurlitzer-indicator.note-attack {
+      filter: brightness(1.35) saturate(1.4);
+      box-shadow:
+        0 0 22px #ffffff,
+        0 0 38px #ffbe0b,
+        0 0 52px #ff007f;
+    }
+
+    body.game-over #wurlitzer-indicator {
+      background: #ff1744;
+      box-shadow: 0 0 10px rgba(255, 23, 68, 0.7);
+      color: #ffffff;
+    }
+
+    /* Subtle vertical glow wake following the indicator */
+    #wurlitzer-glow-wake {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 76px;
+      background: radial-gradient(
+        circle at 50% 50%,
+        rgba(255, 190, 11, 0.42) 0%,
+        rgba(255, 0, 160, 0.22) 45%,
+        transparent 75%
+      );
+      transform: translate3d(0, 152px, 0);
+      pointer-events: none;
+      z-index: 2;
+      will-change: transform;
+    }
+
+    body.disco-active .board-wrapper {
+      background-color: #1a0938;
+      border-top: 3px solid #ff00a0;
+      border-left: 3px solid #ff00a0;
+      border-right: 3px solid #00f5ff;
+      border-bottom: 3px solid #00f5ff;
+      box-shadow: 0 0 18px rgba(255, 0, 160, 0.4);
+    }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(var(--cols), var(--cell-size));
+      grid-template-rows: repeat(var(--rows), var(--cell-size));
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Visual Time Bar (Semi-transparent highlight sweeping left-to-right) */
+    #time-bar {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: var(--cell-size);
+      pointer-events: none;
+      z-index: 6;
+      opacity: 0;
+      background: linear-gradient(
+        90deg,
+        rgba(0, 245, 255, 0.12) 0%,
+        rgba(0, 245, 255, 0.36) 55%,
+        rgba(255, 0, 200, 0.48) 92%,
+        rgba(255, 255, 255, 0.95) 100%
+      );
+      box-shadow:
+        0 0 18px rgba(0, 245, 255, 0.7),
+        0 0 32px rgba(255, 0, 200, 0.55);
+      border-right: 2px solid #ffffff;
+      transform: translate3d(0px, 0, 0);
+      transition: opacity 0.25s ease;
+    }
+
+    body.disco-active #time-bar {
+      opacity: 1;
+    }
+
+    body.game-over #time-bar {
+      background: linear-gradient(
+        90deg,
+        rgba(255, 0, 55, 0.12) 0%,
+        rgba(255, 0, 55, 0.38) 85%,
+        rgba(255, 80, 80, 0.85) 100%
+      );
+      box-shadow: 0 0 16px rgba(255, 0, 55, 0.75);
+      border-right: 2px solid #ff1744;
+    }
+
+    /* Individual Minesweeper Cells */
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      background-color: #c0c0c0;
+      border-top: 3px solid #ffffff;
+      border-left: 3px solid #ffffff;
+      border-right: 3px solid #808080;
+      border-bottom: 3px solid #808080;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 20px;
+      cursor: pointer;
+      position: relative;
+      transition:
+        background-color 0.25s ease,
+        border-color 0.25s ease,
+        color 0.25s ease,
+        box-shadow 0.2s ease,
+        transform 0.12s ease;
+    }
+
+    .cell.revealed {
+      border: 1px solid #808080;
+      background-color: #bdbdbd;
+      cursor: default;
+    }
+
+    /* Classic Minesweeper Number Colors */
+    .cell.revealed[data-num="1"] { color: #0000ff; }
+    .cell.revealed[data-num="2"] { color: #008000; }
+    .cell.revealed[data-num="3"] { color: #ff0000; }
+    .cell.revealed[data-num="4"] { color: #000080; }
+    .cell.revealed[data-num="5"] { color: #800000; }
+    .cell.revealed[data-num="6"] { color: #008080; }
+    .cell.revealed[data-num="7"] { color: #000000; }
+    .cell.revealed[data-num="8"] { color: #808080; }
+
+    /* Neon Techno/Cyberpunk Inverted Cell Scheme */
+    body.disco-active .cell {
+      background-color: #160c2e;
+      border-top: 2px solid #3c1e70;
+      border-left: 2px solid #3c1e70;
+      border-right: 2px solid #090314;
+      border-bottom: 2px solid #090314;
+      box-shadow: inset 0 0 6px rgba(0, 245, 255, 0.12);
+    }
+
+    body.disco-active .cell:hover:not(.revealed) {
+      background-color: #24124d;
+      border-color: #00f5ff;
+      box-shadow: inset 0 0 10px rgba(0, 245, 255, 0.4);
+    }
+
+    body.disco-active .cell.revealed {
+      background-color: #070312;
+      border: 1px solid rgba(0, 245, 255, 0.18);
+      box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.85);
+    }
+
+    /* Cyberpunk Neon Number Colors (1-8) */
+    body.disco-active .cell.revealed[data-num="1"] {
+      color: #00f5ff;
+      text-shadow: 0 0 8px #00f5ff, 0 0 16px #00f5ff;
+    }
+    body.disco-active .cell.revealed[data-num="2"] {
+      color: #39ff14;
+      text-shadow: 0 0 8px #39ff14, 0 0 16px #39ff14;
+    }
+    body.disco-active .cell.revealed[data-num="3"] {
+      color: #ff007f;
+      text-shadow: 0 0 8px #ff007f, 0 0 16px #ff007f;
+    }
+    body.disco-active .cell.revealed[data-num="4"] {
+      color: #ffbe0b;
+      text-shadow: 0 0 8px #ffbe0b, 0 0 16px #ffbe0b;
+    }
+    body.disco-active .cell.revealed[data-num="5"] {
+      color: #b5179e;
+      color: #e066ff;
+      text-shadow: 0 0 8px #e066ff, 0 0 16px #b5179e;
+    }
+    body.disco-active .cell.revealed[data-num="6"] {
+      color: #00bbf9;
+      text-shadow: 0 0 8px #00bbf9, 0 0 16px #00bbf9;
+    }
+    body.disco-active .cell.revealed[data-num="7"] {
+      color: #ff5400;
+      text-shadow: 0 0 8px #ff5400, 0 0 16px #ff5400;
+    }
+    body.disco-active .cell.revealed[data-num="8"] {
+      color: #ffffff;
+      text-shadow: 0 0 10px #ffffff, 0 0 20px #00f5ff;
+    }
+
+    /* Active Step Trigger Pulse Animation */
+    .cell.step-triggered {
+      transform: scale(1.16);
+      z-index: 4;
+      background-color: rgba(255, 255, 255, 0.24) !important;
+      box-shadow:
+        0 0 16px currentColor,
+        inset 0 0 12px currentColor !important;
+    }
+
+    /* Column Beat Flash on Unrevealed / Empty Revealed Squares */
+    body.disco-active .cell.col-active-head {
+      filter: brightness(1.35);
+    }
+
+    /* Mine & Flag States */
+    .cell.flagged::after {
+      content: "🚩";
+      font-size: 18px;
+    }
+
+    body.disco-active .cell.flagged::after {
+      filter: drop-shadow(0 0 6px #ff007f);
+    }
+
+    .cell.mine-hit {
+      background-color: #ff0000 !important;
+      border-color: #800000 !important;
+    }
+
+    body.disco-active .cell.mine-hit {
+      background-color: #ff0044 !important;
+      box-shadow: 0 0 22px #ff0044, inset 0 0 12px #ffffff !important;
+    }
+
+    .mine-icon {
+      width: 20px;
+      height: 20px;
+      display: block;
+    }
+
+    /* Instrument Legend / Synthesizer Rack below the board */
+    #synth-rack {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      width: 100%;
+      max-width: 632px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+      pointer-events: none;
+    }
+
+    body.disco-active #synth-rack {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .rack-module {
+      background: rgba(8, 5, 20, 0.85);
+      border: 1px solid rgba(0, 245, 255, 0.3);
+      border-radius: 4px;
+      padding: 5px 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      color: #d8f8ff;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      transition: transform 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    .rack-module.active-voice {
+      transform: translateY(-2px);
+      border-color: #ffffff;
+      box-shadow: 0 0 12px var(--voice-color, #00f5ff);
+      background: rgba(28, 14, 64, 0.95);
+    }
+
+    .rack-badge {
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 13px;
+      color: #06030f;
+      background: var(--voice-color, #00f5ff);
+      box-shadow: 0 0 8px var(--voice-color, #00f5ff);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Rotating Vibrant Disco Color Backdrop & Laser/Light Canvas -->
+  <div id="disco-backdrop"></div>
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- Animated Disco Ball Assembly (drops from top of window on first safe click) -->
+  <div id="disco-ball-rig" aria-hidden="true">
+    <div class="disco-cord"></div>
+    <canvas id="disco-ball-canvas" width="224" height="224"></canvas>
+  </div>
+
+  <main class="stage-container">
+    <!-- Hidden, empty CSS container div positioned above the game board for future animated dancing characters -->
+    <div id="dancing-characters-container"></div>
+
+    <!-- Minesweeper Window -->
+    <section class="minesweeper-window" aria-label="Minesweeper Step Sequencer">
+      <header class="hud-header">
+        <div id="mine-counter" class="led-counter" title="Remaining Mines">022</div>
+
+        <button id="reset-btn" type="button" aria-label="Reset Game" title="Reset Game">
+          <!-- SVG Smiley that transforms to wear sunglasses & DJ headphones in Disco Mode -->
+          <svg id="smiley-svg" viewBox="0 0 64 64" width="34" height="34">
+            <!-- Headphones (Visible only in Disco Mode) -->
+            <g id="smiley-headphones" opacity="0">
+              <path d="M 10 32 A 22 22 0 0 1 54 32" fill="none" stroke="#00f5ff" stroke-width="5" stroke-linecap="round" />
+              <rect x="4" y="25" width="9" height="17" rx="4" fill="#ff007f" stroke="#00f5ff" stroke-width="2" />
+              <rect x="51" y="25" width="9" height="17" rx="4" fill="#ff007f" stroke="#00f5ff" stroke-width="2" />
+            </g>
+
+            <!-- Classic Yellow Face Circle -->
+            <circle id="smiley-face-circle" cx="32" cy="34" r="20" fill="#ffea00" stroke="#000000" stroke-width="2.5" />
+
+            <!-- Classic Eyes (Initial State) -->
+            <g id="smiley-eyes-classic">
+              <circle cx="25" cy="29" r="2.6" fill="#000000" />
+              <circle cx="39" cy="29" r="2.6" fill="#000000" />
+            </g>
+
+            <!-- Cool Cyberpunk Sunglasses (Visible in Disco Mode) -->
+            <g id="smiley-sunglasses" opacity="0">
+              <line x1="12" y1="27" x2="52" y2="27" stroke="#000000" stroke-width="3" />
+              <polygon points="15,26 30,26 28,34 17,34" fill="#090414" stroke="#00f5ff" stroke-width="1.8" />
+              <polygon points="34,26 49,26 47,34 36,34" fill="#090414" stroke="#00f5ff" stroke-width="1.8" />
+              <!-- Glint reflection on lenses -->
+              <line x1="18" y1="28" x2="22" y2="32" stroke="#ff00a0" stroke-width="2" stroke-linecap="round" />
+              <line x1="37" y1="28" x2="41" y2="32" stroke="#ff00a0" stroke-width="2" stroke-linecap="round" />
+            </g>
+
+            <!-- Dead Eyes (X_X for Game Over) -->
+            <g id="smiley-eyes-dead" opacity="0" stroke="#000000" stroke-width="2.6" stroke-linecap="round">
+              <line x1="21" y1="25" x2="28" y2="32" />
+              <line x1="28" y1="25" x2="21" y2="32" />
+              <line x1="36" y1="25" x2="43" y2="32" />
+              <line x1="43" y1="25" x2="36" y2="32" />
+            </g>
+
+            <!-- Smile Mouth -->
+            <path id="smiley-mouth" d="M 22 40 Q 32 49 42 40" fill="none" stroke="#000000" stroke-width="2.8" stroke-linecap="round" />
+          </svg>
+        </button>
+
+        <div id="timer-counter" class="led-counter" title="Elapsed Seconds / Step Clock">000</div>
+      </header>
+
+      <!-- Playfield Row: Minesweeper Grid + Sleek Vertical Wurlitzer Slider -->
+      <div class="playfield-row" id="playfield-row">
+        <!-- Grid + Sweeping Time Bar -->
+        <div class="board-wrapper" id="board-wrapper">
+          <div id="time-bar"></div>
+          <div id="grid" role="grid" aria-label="Minesweeper Grid"></div>
+        </div>
+
+        <!-- Live Mouse-Tracking Wurlitzer Vertical Slider Bar -->
+        <div
+          id="wurlitzer-slider"
+          role="slider"
+          aria-label="Wurlitzer Lead Pitch Slider (C Minor Pentatonic)"
+          aria-valuemin="0"
+          aria-valuemax="9"
+          aria-valuenow="4"
+          title="Wurlitzer Electric Piano Lead (C Minor Pentatonic)"
+        >
+          <div class="wurlitzer-track-line"></div>
+          <div id="wurlitzer-glow-wake"></div>
+          <div class="wurlitzer-ticks" id="wurlitzer-ticks"></div>
+          <div id="wurlitzer-indicator">C4</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Instrument Voice Rack Legend (1-8) -->
+    <aside id="synth-rack" aria-label="Synthesizer Instrument Mapping">
+      <div class="rack-module" data-voice="1" style="--voice-color: #00f5ff">
+        <span class="rack-badge">1</span>
+        <span>Crisp Hi-Hat</span>
+      </div>
+      <div class="rack-module" data-voice="2" style="--voice-color: #39ff14">
+        <span class="rack-badge">2</span>
+        <span>FM Sub Bass</span>
+      </div>
+      <div class="rack-module" data-voice="3" style="--voice-color: #ff007f">
+        <span class="rack-badge">3</span>
+        <span>Cyber Lead</span>
+      </div>
+      <div class="rack-module" data-voice="4" style="--voice-color: #ffbe0b">
+        <span class="rack-badge">4</span>
+        <span>Electro Snare</span>
+      </div>
+      <div class="rack-module" data-voice="5" style="--voice-color: #e066ff">
+        <span class="rack-badge">5</span>
+        <span>Acid 303 Saw</span>
+      </div>
+      <div class="rack-module" data-voice="6" style="--voice-color: #00bbf9">
+        <span class="rack-badge">6</span>
+        <span>FM Glass Bell</span>
+      </div>
+      <div class="rack-module" data-voice="7" style="--voice-color: #ff5400">
+        <span class="rack-badge">7</span>
+        <span>Poly Chord Stab</span>
+      </div>
+      <div class="rack-module" data-voice="8" style="--voice-color: #ffffff">
+        <span class="rack-badge">8</span>
+        <span>Laser Sub Drop</span>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (() => {
+      // ==========================================
+      // CONFIGURATION & GAME STATE
+      // ==========================================
+      const COLS = 16; // 16-step musical bar
+      const ROWS = 10;
+      const TOTAL_MINES = 22;
+      const BPM = 128;
+      const SECONDS_PER_BEAT = 60 / BPM;
+      const STEP_DURATION = SECONDS_PER_BEAT / 2; // 8th-note steps (16 columns = 2 bars)
+      const LOOP_DURATION = STEP_DURATION * COLS;
+
+      const gridEl = document.getElementById("grid");
+      const boardWrapperEl = document.getElementById("board-wrapper");
+      const playfieldRowEl = document.getElementById("playfield-row");
+      const minesweeperWindowEl = document.querySelector(".minesweeper-window");
+      const wurlitzerSliderEl = document.getElementById("wurlitzer-slider");
+      const wurlitzerIndicatorEl = document.getElementById("wurlitzer-indicator");
+      const wurlitzerGlowWakeEl = document.getElementById("wurlitzer-glow-wake");
+      const wurlitzerTicksEl = document.getElementById("wurlitzer-ticks");
+      const timeBarEl = document.getElementById("time-bar");
+      const mineCounterEl = document.getElementById("mine-counter");
+      const timerCounterEl = document.getElementById("timer-counter");
+      const resetBtn = document.getElementById("reset-btn");
+
+      // Smiley SVG parts
+      const headphonesGroup = document.getElementById("smiley-headphones");
+      const classicEyesGroup = document.getElementById("smiley-eyes-classic");
+      const sunglassesGroup = document.getElementById("smiley-sunglasses");
+      const deadEyesGroup = document.getElementById("smiley-eyes-dead");
+      const mouthPath = document.getElementById("smiley-mouth");
+
+      let board = [];
+      let firstClickDone = false;
+      let discoMode = false;
+      let gameOver = false;
+      let gameWon = false;
+      let flagsPlaced = 0;
+      let revealedCount = 0;
+      let elapsedSeconds = 0;
+      let timerInterval = null;
+
+      // ==========================================
+      // WEB AUDIO API STEP-SEQUENCER & SYNTHESIZER
+      // ==========================================
+      let audioCtx = null;
+      let masterGain = null;
+      let wurlitzerBus = null;
+      let noiseBuffer = null;
+
+      // Precise Web Audio Clock State
+      let sequencerRunning = false;
+      let sequenceStartTime = 0;
+      let nextStepTime = 0;
+      let currentStepIndex = 0;
+      let lastVisualCol = -1;
+      let schedulerTimerId = null;
+      let visualRafId = null;
+      let frozenBarX = 0;
+
+      // Active audio nodes registry so we can kill all oscillators immediately on Game Over
+      const activeAudioNodes = new Set();
+
+      function registerNode(node) {
+        activeAudioNodes.add(node);
+        node.onended = () => {
+          activeAudioNodes.delete(node);
+        };
+      }
+
+      function createNoiseBuffer(ctx) {
+        const bufferSize = ctx.sampleRate * 1.0;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+        return buffer;
+      }
+
+      function ensureAudioContext() {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContextClass();
+          noiseBuffer = createNoiseBuffer(audioCtx);
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+        if (masterGain) {
+          try {
+            masterGain.disconnect();
+          } catch (_) {}
+        }
+        masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+        masterGain.connect(audioCtx.destination);
+
+        // Dedicated lead submix bus so the Wurlitzer plays smoothly over the step-sequencer loop
+        wurlitzerBus = audioCtx.createGain();
+        wurlitzerBus.gain.setValueAtTime(0.88, audioCtx.currentTime);
+        wurlitzerBus.connect(masterGain);
+      }
+
+      // Immediately halt all oscillators/sources for dead silence
+      function stopAllAudioImmediately() {
+        sequencerRunning = false;
+        if (schedulerTimerId) {
+          clearInterval(schedulerTimerId);
+          schedulerTimerId = null;
+        }
+        if (visualRafId) {
+          cancelAnimationFrame(visualRafId);
+          visualRafId = null;
+        }
+
+        if (audioCtx && masterGain) {
+          try {
+            masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+            masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            masterGain.disconnect();
+          } catch (_) {}
+        }
+
+        for (const node of activeAudioNodes) {
+          try {
+            node.stop(0);
+          } catch (_) {}
+          try {
+            node.disconnect();
+          } catch (_) {}
+        }
+        activeAudioNodes.clear();
+      }
+
+      // C Minor Pentatonic Scale (2 octaves across 10 rows: bottom = low C3, top = high Bb4)
+      const SCALE_SEMITONES = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22];
+      const C_MINOR_PENTATONIC = [
+        { name: "Bb4", freq: 466.16 }, // Row 0 (Top of grid - highest note)
+        { name: "G4",  freq: 392.00 }, // Row 1
+        { name: "F4",  freq: 349.23 }, // Row 2
+        { name: "Eb4", freq: 311.13 }, // Row 3
+        { name: "C4",  freq: 261.63 }, // Row 4
+        { name: "Bb3", freq: 233.08 }, // Row 5
+        { name: "G3",  freq: 196.00 }, // Row 6
+        { name: "F3",  freq: 174.61 }, // Row 7
+        { name: "Eb3", freq: 155.56 }, // Row 8
+        { name: "C3",  freq: 130.81 }, // Row 9 (Bottom of grid - lowest note)
+      ];
+
+      function rowToFreq(baseFreq, row) {
+        const idx = Math.max(0, Math.min(SCALE_SEMITONES.length - 1, ROWS - 1 - row));
+        const semitones = SCALE_SEMITONES[idx];
+        return baseFreq * Math.pow(2, semitones / 12);
+      }
+
+      // ==========================================
+      // WURLITZER ELECTRIC PIANO SYNTHESIZER PATCH
+      // ==========================================
+      // Mixes a sine wave with a slight triangle wave, a subtle reed harmonic bite,
+      // a 5.6 Hz LFO for classic Wurlitzer tremolo, and a quick electric-piano decay envelope.
+      let indicatorAttackTimeout = null;
+
+      function playWurlitzerNote(freq, velocity = 0.85) {
+        if (!audioCtx || !masterGain || !wurlitzerBus || gameOver) return;
+
+        const now = audioCtx.currentTime;
+        const duration = 0.44;
+
+        // 1. Primary Sine Oscillator (warm fundamental body)
+        const sineOsc = audioCtx.createOscillator();
+        sineOsc.type = "sine";
+        sineOsc.frequency.setValueAtTime(freq, now);
+
+        const sineGain = audioCtx.createGain();
+        sineGain.gain.setValueAtTime(0.76, now);
+
+        // 2. Slight Triangle Oscillator (reedy electric piano character)
+        const triOsc = audioCtx.createOscillator();
+        triOsc.type = "triangle";
+        triOsc.frequency.setValueAtTime(freq, now);
+        triOsc.detune.setValueAtTime(3.5, now); // Subtle vintage reed chorus
+
+        const triGain = audioCtx.createGain();
+        triGain.gain.setValueAtTime(0.28, now);
+
+        // 3. Subtle 2nd-harmonic reed tine attack overtone (decays very fast)
+        const tineOsc = audioCtx.createOscillator();
+        tineOsc.type = "sine";
+        tineOsc.frequency.setValueAtTime(freq * 2, now);
+
+        const tineGain = audioCtx.createGain();
+        tineGain.gain.setValueAtTime(0.14 * velocity, now);
+        tineGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
+
+        // 4. Warm Lowpass Filter with subtle key-bark envelope
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.Q.setValueAtTime(1.8, now);
+        filter.frequency.setValueAtTime(Math.min(7500, freq * 7.5), now);
+        filter.frequency.exponentialRampToValueAtTime(Math.max(900, freq * 2.6), now + 0.28);
+
+        // 5. Tremolo Stage modulated by a subtle LFO (~5.6 Hz)
+        const tremoloGain = audioCtx.createGain();
+        tremoloGain.gain.setValueAtTime(0.84, now);
+
+        const lfoOsc = audioCtx.createOscillator();
+        lfoOsc.type = "sine";
+        lfoOsc.frequency.setValueAtTime(5.6, now);
+
+        const lfoDepth = audioCtx.createGain();
+        lfoDepth.gain.setValueAtTime(0.16, now); // Subtle tremolo depth
+
+        lfoOsc.connect(lfoDepth);
+        lfoDepth.connect(tremoloGain.gain);
+
+        // 6. Quick Electric-Piano Decay Envelope
+        const envGain = audioCtx.createGain();
+        const peakGain = 0.26 * velocity;
+        envGain.gain.setValueAtTime(0.0001, now);
+        envGain.gain.linearRampToValueAtTime(peakGain, now + 0.006);
+        envGain.gain.exponentialRampToValueAtTime(peakGain * 0.42, now + 0.09);
+        envGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        // Signal routing: Oscillators -> Filter -> Tremolo -> Quick Decay Envelope -> Wurlitzer Bus
+        sineOsc.connect(sineGain);
+        triOsc.connect(triGain);
+        tineOsc.connect(tineGain);
+
+        sineGain.connect(filter);
+        triGain.connect(filter);
+        tineGain.connect(filter);
+
+        filter.connect(tremoloGain);
+        tremoloGain.connect(envGain);
+        envGain.connect(wurlitzerBus);
+
+        registerNode(sineOsc);
+        registerNode(triOsc);
+        registerNode(tineOsc);
+        registerNode(lfoOsc);
+
+        sineOsc.start(now);
+        triOsc.start(now);
+        tineOsc.start(now);
+        lfoOsc.start(now);
+
+        const stopTime = now + duration + 0.02;
+        sineOsc.stop(stopTime);
+        triOsc.stop(stopTime);
+        tineOsc.stop(stopTime);
+        lfoOsc.stop(stopTime);
+
+        // Visual pulse on the Wurlitzer slider indicator
+        wurlitzerIndicatorEl.classList.add("note-attack");
+        if (indicatorAttackTimeout) clearTimeout(indicatorAttackTimeout);
+        indicatorAttackTimeout = setTimeout(() => {
+          wurlitzerIndicatorEl.classList.remove("note-attack");
+        }, 110);
+      }
+
+      // Synthesize Distinct Instruments for Numbers 1 - 8
+      function triggerInstrument(number, row, time, voiceCountInCol = 1) {
+        if (!audioCtx || !masterGain || !sequencerRunning || gameOver) return;
+
+        // Scale down per-voice gain slightly if many cells in the same column fire at once
+        const polyAtten = 1 / Math.sqrt(Math.max(1, voiceCountInCol * 0.65));
+
+        switch (number) {
+          case 1: {
+            // 1 = Crisp Metallic Hi-Hat (Bandpass + Highpass filtered noise + metallic ring)
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = noiseBuffer;
+
+            const hp = audioCtx.createBiquadFilter();
+            hp.type = "highpass";
+            hp.frequency.setValueAtTime(6500 + (ROWS - row) * 320, time);
+
+            const env = audioCtx.createGain();
+            const peak = 0.28 * polyAtten;
+            env.gain.setValueAtTime(0.0001, time);
+            env.gain.linearRampToValueAtTime(peak, time + 0.004);
+            env.gain.exponentialRampToValueAtTime(0.0001, time + 0.085);
+
+            noise.connect(hp);
+            hp.connect(env);
+            env.connect(masterGain);
+
+            registerNode(noise);
+            noise.start(time);
+            noise.stop(time + 0.09);
+            break;
+          }
+
+          case 2: {
+            // 2 = Deep FM Techno Bass (C Minor Pentatonic root C2)
+            const baseFreq = rowToFreq(65.41, row);
+            const carrier = audioCtx.createOscillator();
+            const modulator = audioCtx.createOscillator();
+            const modGain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            const env = audioCtx.createGain();
+
+            carrier.type = "sawtooth";
+            modulator.type = "sine";
+            carrier.frequency.setValueAtTime(baseFreq, time);
+            modulator.frequency.setValueAtTime(baseFreq * 2, time);
+
+            modGain.gain.setValueAtTime(baseFreq * 3.2, time);
+            modGain.gain.exponentialRampToValueAtTime(10, time + 0.18);
+
+            filter.type = "lowpass";
+            filter.Q.setValueAtTime(5.5, time);
+            filter.frequency.setValueAtTime(1100, time);
+            filter.frequency.exponentialRampToValueAtTime(140, time + 0.2);
+
+            const peak = 0.34 * polyAtten;
+            env.gain.setValueAtTime(0.0001, time);
+            env.gain.linearRampToValueAtTime(peak, time + 0.008);
+            env.gain.exponentialRampToValueAtTime(0.0001, time + 0.22);
+
+            modulator.connect(modGain);
+            modGain.connect(carrier.frequency);
+            carrier.connect(filter);
+            filter.connect(env);
+            env.connect(masterGain);
+
+            registerNode(carrier);
+            registerNode(modulator);
+            carrier.start(time);
+            modulator.start(time);
+            carrier.stop(time + 0.23);
+            modulator.stop(time + 0.23);
+            break;
+          }
+
+          case 3: {
+            // 3 = Cyberpunk Dual Detuned Synth Lead (C Minor Pentatonic C4)
+            const freq = rowToFreq(261.63, row);
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const filter = audioCtx.createBiquadFilter();
+            const env = audioCtx.createGain();
+
+            osc1.type = "sawtooth";
+            osc2.type = "square";
+            osc1.frequency.setValueAtTime(freq, time);
+            osc2.frequency.setValueAtTime(freq * 1.007, time);
+
+            filter.type = "lowpass";
+            filter.Q.setValueAtTime(4.0, time);
+            filter.frequency.setValueAtTime(3600, time);
+            filter.frequency.exponentialRampToValueAtTime(600, time + 0.21);
+
+            const peak = 0.22 * polyAtten;
+            env.gain.setValueAtTime(0.0001, time);
+            env.gain.linearRampToValueAtTime(peak, time + 0.01);
+            env.gain.exponentialRampToValueAtTime(0.0001, time + 0.22);
+
+            osc1.connect(filter);
+            osc2.connect(filter);
+            filter.connect(env);
+            env.connect(masterGain);
+
+            registerNode(osc1);
+            registerNode(osc2);
+            osc1.start(time);
+            osc2.start(time);
+            osc1.stop(time + 0.23);
+            osc2.stop(time + 0.23);
+            break;
+          }
+
+          case 4: {
+            // 4 = Punchy Electronic Snare
+            const bodyOsc = audioCtx.createOscillator();
+            const bodyEnv = audioCtx.createGain();
+            bodyOsc.type = "triangle";
+            bodyOsc.frequency.setValueAtTime(210, time);
+            bodyOsc.frequency.exponentialRampToValueAtTime(95, time + 0.11);
+
+            bodyEnv.gain.setValueAtTime(0.38 * polyAtten, time);
+            bodyEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.12);
+
+            bodyOsc.connect(bodyEnv);
+            bodyEnv.connect(masterGain);
+
+            const snapNoise = audioCtx.createBufferSource();
+            snapNoise.buffer = noiseBuffer;
+            const bp = audioCtx.createBiquadFilter();
+            bp.type = "bandpass";
+            bp.frequency.setValueAtTime(2400, time);
+            bp.Q.setValueAtTime(1.2, time);
+
+            const noiseEnv = audioCtx.createGain();
+            noiseEnv.gain.setValueAtTime(0.32 * polyAtten, time);
+            noiseEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.16);
+
+            snapNoise.connect(bp);
+            bp.connect(noiseEnv);
+            noiseEnv.connect(masterGain);
+
+            registerNode(bodyOsc);
+            registerNode(snapNoise);
+            bodyOsc.start(time);
+            bodyOsc.stop(time + 0.13);
+            snapNoise.start(time);
+            snapNoise.stop(time + 0.17);
+            break;
+          }
+
+          case 5: {
+            // 5 = Acid 303 Resonant Squelch Synth (C Minor Pentatonic C3)
+            const freq = rowToFreq(130.81, row);
+            const osc = audioCtx.createOscillator();
+            const filter = audioCtx.createBiquadFilter();
+            const env = audioCtx.createGain();
+
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(freq, time);
+
+            filter.type = "lowpass";
+            filter.Q.setValueAtTime(14.0, time);
+            filter.frequency.setValueAtTime(280, time);
+            filter.frequency.exponentialRampToValueAtTime(4200, time + 0.045);
+            filter.frequency.exponentialRampToValueAtTime(320, time + 0.19);
+
+            env.gain.setValueAtTime(0.0001, time);
+            env.gain.linearRampToValueAtTime(0.26 * polyAtten, time + 0.006);
+            env.gain.exponentialRampToValueAtTime(0.0001, time + 0.2);
+
+            osc.connect(filter);
+            filter.connect(env);
+            env.connect(masterGain);
+
+            registerNode(osc);
+            osc.start(time);
+            osc.stop(time + 0.21);
+            break;
+          }
+
+          case 6: {
+            // 6 = Shimmering FM Glass Bell / Pluck (C Minor Pentatonic C5)
+            const freq = rowToFreq(523.25, row);
+            const carrier = audioCtx.createOscillator();
+            const mod = audioCtx.createOscillator();
+            const modGain = audioCtx.createGain();
+            const env = audioCtx.createGain();
+
+            carrier.type = "sine";
+            mod.type = "sine";
+            carrier.frequency.setValueAtTime(freq, time);
+            mod.frequency.setValueAtTime(freq * 3.5, time); // Metallic bell harmonic
+
+            modGain.gain.setValueAtTime(freq * 2.2, time);
+            modGain.gain.exponentialRampToValueAtTime(1.0, time + 0.25);
+
+            env.gain.setValueAtTime(0.0001, time);
+            env.gain.linearRampToValueAtTime(0.24 * polyAtten, time + 0.005);
+            env.gain.exponentialRampToValueAtTime(0.0001, time + 0.3);
+
+            mod.connect(modGain);
+            modGain.connect(carrier.frequency);
+            carrier.connect(env);
+            env.connect(masterGain);
+
+            registerNode(carrier);
+            registerNode(mod);
+            carrier.start(time);
+            mod.start(time);
+            carrier.stop(time + 0.31);
+            mod.stop(time + 0.31);
+            break;
+          }
+
+          case 7: {
+            // 7 = Poly Synth Minor Chord Stab (C Minor Pentatonic C4)
+            const root = rowToFreq(261.63, row);
+            const ratios = [1, Math.pow(2, 3 / 12), Math.pow(2, 7 / 12)];
+            const filter = audioCtx.createBiquadFilter();
+            const env = audioCtx.createGain();
+
+            filter.type = "lowpass";
+            filter.frequency.setValueAtTime(3200, time);
+            filter.frequency.exponentialRampToValueAtTime(700, time + 0.22);
+
+            env.gain.setValueAtTime(0.0001, time);
+            env.gain.linearRampToValueAtTime(0.18 * polyAtten, time + 0.01);
+            env.gain.exponentialRampToValueAtTime(0.0001, time + 0.24);
+
+            filter.connect(env);
+            env.connect(masterGain);
+
+            ratios.forEach((ratio) => {
+              const osc = audioCtx.createOscillator();
+              osc.type = "sawtooth";
+              osc.frequency.setValueAtTime(root * ratio, time);
+              osc.connect(filter);
+              registerNode(osc);
+              osc.start(time);
+              osc.stop(time + 0.25);
+            });
+            break;
+          }
+
+          case 8: {
+            // 8 = Laser Sub-Drop / 808 Tom Zap
+            const osc = audioCtx.createOscillator();
+            const env = audioCtx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(980, time);
+            osc.frequency.exponentialRampToValueAtTime(48, time + 0.24);
+
+            env.gain.setValueAtTime(0.0001, time);
+            env.gain.linearRampToValueAtTime(0.42 * polyAtten, time + 0.005);
+            env.gain.exponentialRampToValueAtTime(0.0001, time + 0.26);
+
+            osc.connect(env);
+            env.connect(masterGain);
+
+            registerNode(osc);
+            osc.start(time);
+            osc.stop(time + 0.27);
+            break;
+          }
+        }
+      }
+
+      // Trigger celebratory drop chord when the first safe click transitions into Disco Mode
+      function triggerDiscoDropFanfare() {
+        if (!audioCtx || !masterGain) return;
+        const now = audioCtx.currentTime;
+        const notes = [110, 220, 261.63, 329.63, 392.0, 523.25];
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const env = audioCtx.createGain();
+          osc.type = i === 0 ? "sawtooth" : "triangle";
+          osc.frequency.setValueAtTime(freq * 0.5, now);
+          osc.frequency.exponentialRampToValueAtTime(freq, now + 0.14);
+
+          env.gain.setValueAtTime(0.0001, now);
+          env.gain.linearRampToValueAtTime(0.14, now + 0.02);
+          env.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+
+          osc.connect(env);
+          env.connect(masterGain);
+          registerNode(osc);
+          osc.start(now);
+          osc.stop(now + 0.46);
+        });
+      }
+
+      // Schedule notes for all revealed numbered squares in column `col`
+      function scheduleColumnStep(col, stepAudioTime) {
+        if (!sequencerRunning || gameOver) return;
+
+        // Collect all revealed numbers (1..8) in this column
+        const activeCells = [];
+        for (let r = 0; r < ROWS; r++) {
+          const cell = board[r][col];
+          if (cell.revealed && !cell.isMine && cell.neighborMines >= 1 && cell.neighborMines <= 8) {
+            activeCells.push(cell);
+          }
+        }
+
+        // Schedule synthesized notes at the exact Web Audio API timestamp
+        const count = activeCells.length;
+        for (const cell of activeCells) {
+          triggerInstrument(cell.neighborMines, cell.row, stepAudioTime, count);
+        }
+      }
+
+      // Highlight the column cells & synth rack modules visually when crossed
+      function highlightStepColumnVisuals(col) {
+        if (gameOver) return;
+
+        // Clear previous column highlights
+        document.querySelectorAll(".cell.col-active-head, .cell.step-triggered").forEach((el) => {
+          el.classList.remove("col-active-head", "step-triggered");
+        });
+        document.querySelectorAll(".rack-module.active-voice").forEach((el) => {
+          el.classList.remove("active-voice");
+        });
+
+        for (let r = 0; r < ROWS; r++) {
+          const cell = board[r][col];
+          cell.el.classList.add("col-active-head");
+          if (cell.revealed && !cell.isMine && cell.neighborMines >= 1 && cell.neighborMines <= 8) {
+            cell.el.classList.add("step-triggered");
+            const rackMod = document.querySelector(`.rack-module[data-voice="${cell.neighborMines}"]`);
+            if (rackMod) {
+              rackMod.classList.add("active-voice");
+            }
+          }
+        }
+      }
+
+      // Web Audio API Lookahead Scheduler + Visual Sync Loop
+      function startSequencer() {
+        ensureAudioContext();
+        triggerDiscoDropFanfare();
+
+        sequencerRunning = true;
+        sequenceStartTime = audioCtx.currentTime + 0.04;
+        nextStepTime = sequenceStartTime;
+        currentStepIndex = 0;
+        lastVisualCol = -1;
+
+        const scheduleAheadTime = 0.1; // 100ms lookahead window
+
+        schedulerTimerId = setInterval(() => {
+          if (!sequencerRunning || gameOver || !audioCtx) return;
+          while (nextStepTime < audioCtx.currentTime + scheduleAheadTime) {
+            scheduleColumnStep(currentStepIndex, nextStepTime);
+            nextStepTime += STEP_DURATION;
+            currentStepIndex = (currentStepIndex + 1) % COLS;
+          }
+        }, 20);
+
+        function updateTimeBarPosition() {
+          if (!sequencerRunning || gameOver || !audioCtx) return;
+
+          const elapsed = Math.max(0, audioCtx.currentTime - sequenceStartTime);
+          const loopProgress = (elapsed % LOOP_DURATION) / LOOP_DURATION;
+          const boardWidth = gridEl.clientWidth || COLS * 38;
+          const cellWidth = boardWidth / COLS;
+
+          // Smooth continuous sweep + exact column crossing detection
+          const exactColFloat = loopProgress * COLS;
+          const activeCol = Math.floor(exactColFloat) % COLS;
+          const barX = exactColFloat * cellWidth - cellWidth * 0.15;
+          frozenBarX = Math.max(0, Math.min(boardWidth - cellWidth, exactColFloat * cellWidth));
+
+          timeBarEl.style.transform = `translate3d(${frozenBarX}px, 0, 0)`;
+
+          if (activeCol !== lastVisualCol) {
+            lastVisualCol = activeCol;
+            highlightStepColumnVisuals(activeCol);
+            // Pulse background disco beams on each step
+            triggerVisualBeatPulse(activeCol);
+          }
+
+          visualRafId = requestAnimationFrame(updateTimeBarPosition);
+        }
+
+        visualRafId = requestAnimationFrame(updateTimeBarPosition);
+      }
+
+      // ==========================================
+      // DISCO BALL & BACKGROUND CANVAS ANIMATION
+      // ==========================================
+      const bgCanvas = document.getElementById("bg-canvas");
+      const bgCtx = bgCanvas.getContext("2d");
+      const ballCanvas = document.getElementById("disco-ball-canvas");
+      const ballCtx = ballCanvas.getContext("2d");
+
+      let discoAnimId = null;
+      let discoPhase = 0;
+      let beatPulse = 0;
+
+      const discoParticles = Array.from({ length: 55 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        r: 2 + Math.random() * 4,
+        hue: Math.random() * 360,
+        vx: (Math.random() - 0.5) * 0.0018,
+        vy: (Math.random() - 0.5) * 0.0018,
+      }));
+
+      function resizeBgCanvas() {
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+      }
+      window.addEventListener("resize", resizeBgCanvas);
+      resizeBgCanvas();
+
+      function triggerVisualBeatPulse(stepCol) {
+        beatPulse = stepCol % 4 === 0 ? 1.0 : 0.45;
+      }
+
+      function renderDiscoEffects() {
+        if (!discoMode) return;
+
+        // If Game Over, freeze the animation frame so the room goes dead still
+        if (!gameOver) {
+          discoPhase += 0.032;
+          beatPulse *= 0.88;
+        }
+
+        const w = bgCanvas.width;
+        const h = bgCanvas.height;
+        bgCtx.clearRect(0, 0, w, h);
+
+        // Draw rotating volumetric light beams radiating from the disco ball at top center
+        const originX = w * 0.5;
+        const originY = 82;
+        const beamCount = 14;
+        const maxRadius = Math.hypot(w, h) * 1.1;
+
+        bgCtx.save();
+        bgCtx.globalCompositeOperation = "screen";
+        for (let i = 0; i < beamCount; i++) {
+          const baseAngle = (i / beamCount) * Math.PI * 2 + discoPhase * 0.55;
+          const spread = 0.09 + beatPulse * 0.04;
+          const hue = (i * (360 / beamCount) + discoPhase * 85) % 360;
+
+          const grad = bgCtx.createRadialGradient(originX, originY, 10, originX, originY, maxRadius);
+          grad.addColorStop(0, `hsla(${hue}, 100%, 70%, ${0.42 + beatPulse * 0.2})`);
+          grad.addColorStop(0.5, `hsla(${(hue + 40) % 360}, 100%, 55%, 0.16)`);
+          grad.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
+
+          bgCtx.fillStyle = grad;
+          bgCtx.beginPath();
+          bgCtx.moveTo(originX, originY);
+          bgCtx.arc(originX, originY, maxRadius, baseAngle - spread, baseAngle + spread);
+          bgCtx.closePath();
+          bgCtx.fill();
+        }
+
+        // Floating specular disco floor reflections
+        for (const p of discoParticles) {
+          if (!gameOver) {
+            p.x = (p.x + p.vx + 1) % 1;
+            p.y = (p.y + p.vy + 1) % 1;
+          }
+          const px = p.x * w;
+          const py = p.y * h;
+          const twinkle = 0.4 + 0.6 * Math.sin(discoPhase * 3 + p.hue);
+          bgCtx.fillStyle = `hsla(${(p.hue + discoPhase * 60) % 360}, 100%, 75%, ${twinkle * 0.65})`;
+          bgCtx.beginPath();
+          bgCtx.arc(px, py, p.r * (1 + beatPulse * 0.5), 0, Math.PI * 2);
+          bgCtx.fill();
+        }
+        bgCtx.restore();
+
+        // Render 3D faceted Disco Ball on #disco-ball-canvas
+        renderDiscoBallSphere();
+
+        if (!gameOver) {
+          discoAnimId = requestAnimationFrame(renderDiscoEffects);
+        }
+      }
+
+      function renderDiscoBallSphere() {
+        const cw = ballCanvas.width;
+        const ch = ballCanvas.height;
+        const cx = cw / 2;
+        const cy = ch / 2;
+        const radius = cw * 0.44;
+
+        ballCtx.clearRect(0, 0, cw, ch);
+
+        // Base metallic sphere gradient
+        const baseGrad = ballCtx.createRadialGradient(
+          cx - radius * 0.3,
+          cy - radius * 0.3,
+          radius * 0.1,
+          cx,
+          cy,
+          radius
+        );
+        baseGrad.addColorStop(0, "#ffffff");
+        baseGrad.addColorStop(0.35, "#b8d8ff");
+        baseGrad.addColorStop(0.75, "#3a1c71");
+        baseGrad.addColorStop(1, "#090418");
+
+        ballCtx.fillStyle = baseGrad;
+        ballCtx.beginPath();
+        ballCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ballCtx.fill();
+
+        // Latitude & longitude mirror tiles
+        const latBands = 11;
+        for (let lat = 0; lat < latBands; lat++) {
+          const v = (lat + 0.5) / latBands; // 0..1 from top to bottom
+          const theta = (v - 0.5) * Math.PI; // -PI/2 .. PI/2
+          const ringY = cy + Math.sin(theta) * radius;
+          const ringR = Math.cos(theta) * radius;
+          const tileH = (Math.PI * radius) / latBands;
+          const numTiles = Math.max(6, Math.floor(22 * Math.cos(theta)));
+
+          for (let lon = 0; lon < numTiles; lon++) {
+            const phi = (lon / numTiles) * Math.PI * 2 + discoPhase * 1.1;
+            const sinPhi = Math.sin(phi);
+            const cosPhi = Math.cos(phi);
+
+            // Only draw front-facing hemisphere tiles
+            if (cosPhi > -0.15) {
+              const tileX = cx + sinPhi * ringR;
+              const tileW = Math.max(3, ((2 * Math.PI * ringR) / numTiles) * cosPhi * 0.88);
+              const shimmer = Math.sin(phi * 2 + lat * 1.7 + discoPhase * 2);
+              const hue = (lat * 32 + lon * 25 + discoPhase * 90) % 360;
+              const lightness = shimmer > 0.65 ? 95 : 50 + cosPhi * 30;
+
+              ballCtx.fillStyle = `hsl(${hue}, 95%, ${lightness}%)`;
+              ballCtx.fillRect(tileX - tileW / 2, ringY - tileH * 0.42, tileW, tileH * 0.82);
+            }
+          }
+        }
+
+        // Outer neon rim highlight
+        ballCtx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+        ballCtx.lineWidth = 2.5;
+        ballCtx.beginPath();
+        ballCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ballCtx.stroke();
+      }
+
+      // ==========================================
+      // SMILEY ICON STATE UPDATES
+      // ==========================================
+      function setSmileyState(state) {
+        // state: 'classic' | 'disco' | 'dead'
+        if (state === "classic") {
+          headphonesGroup.setAttribute("opacity", "0");
+          sunglassesGroup.setAttribute("opacity", "0");
+          deadEyesGroup.setAttribute("opacity", "0");
+          classicEyesGroup.setAttribute("opacity", "1");
+          mouthPath.setAttribute("d", "M 22 40 Q 32 49 42 40");
+        } else if (state === "disco") {
+          headphonesGroup.setAttribute("opacity", "1");
+          sunglassesGroup.setAttribute("opacity", "1");
+          deadEyesGroup.setAttribute("opacity", "0");
+          classicEyesGroup.setAttribute("opacity", "0");
+          mouthPath.setAttribute("d", "M 21 39 Q 32 51 43 39");
+        } else if (state === "dead") {
+          sunglassesGroup.setAttribute("opacity", "0");
+          classicEyesGroup.setAttribute("opacity", "0");
+          deadEyesGroup.setAttribute("opacity", "1");
+          mouthPath.setAttribute("d", "M 22 45 Q 32 36 42 45");
+        }
+      }
+
+      // ==========================================
+      // MINESWEEPER CORE LOGIC
+      // ==========================================
+      function formatLED(num) {
+        const clamped = Math.max(-99, Math.min(999, num));
+        if (clamped < 0) {
+          return "-" + String(Math.abs(clamped)).padStart(2, "0");
+        }
+        return String(clamped).padStart(3, "0");
+      }
+
+      function updateCounters() {
+        mineCounterEl.textContent = formatLED(TOTAL_MINES - flagsPlaced);
+        timerCounterEl.textContent = formatLED(elapsedSeconds);
+      }
+
+      function createMineSVG() {
+        return `
+          <svg class="mine-icon" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="6.5" fill="currentColor" />
+            <line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+            <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+            <line x1="5" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <line x1="19" y1="5" x2="5" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <circle cx="9.5" cy="9.5" r="2" fill="#ffffff" />
+          </svg>
+        `;
+      }
+
+      // ==========================================
+      // WURLITZER THEREMIN UI & Y-AXIS MOUSE TRACKING
+      // ==========================================
+      let currentThereminRow = Math.floor(ROWS / 2);
+      let lastTriggeredThereminRow = -1;
+      let lastThereminNoteTime = 0;
+
+      function buildWurlitzerTicks() {
+        wurlitzerTicksEl.innerHTML = "";
+        C_MINOR_PENTATONIC.forEach((noteObj, idx) => {
+          const tick = document.createElement("div");
+          tick.className = "wurlitzer-tick";
+          tick.dataset.row = idx;
+          tick.textContent = noteObj.name;
+          wurlitzerTicksEl.appendChild(tick);
+        });
+      }
+
+      function updateWurlitzerSliderVisuals(yRatio, rowIndex) {
+        const sliderHeight = wurlitzerSliderEl.clientHeight || ROWS * 38;
+        const indicatorHeight = 22;
+        const clampedRatio = Math.max(0, Math.min(1, yRatio));
+        const indicatorY = clampedRatio * Math.max(0, sliderHeight - indicatorHeight);
+        const wakeY = clampedRatio * Math.max(0, sliderHeight - 76);
+
+        wurlitzerIndicatorEl.style.transform = `translate3d(0, ${indicatorY}px, 0)`;
+        wurlitzerGlowWakeEl.style.transform = `translate3d(0, ${wakeY}px, 0)`;
+
+        const safeRow = Math.max(0, Math.min(ROWS - 1, rowIndex));
+        const noteObj = C_MINOR_PENTATONIC[safeRow];
+        if (noteObj) {
+          wurlitzerIndicatorEl.textContent = noteObj.name;
+          wurlitzerSliderEl.setAttribute("aria-valuenow", String(ROWS - 1 - safeRow));
+        }
+
+        const ticks = wurlitzerTicksEl.querySelectorAll(".wurlitzer-tick");
+        ticks.forEach((tick, idx) => {
+          tick.classList.toggle("active-degree", idx === safeRow);
+        });
+      }
+
+      function handleGameAreaMouseMove(clientY, forceTrigger = false) {
+        if (gameOver) return;
+        const rect = boardWrapperEl.getBoundingClientRect();
+        if (!rect || rect.height <= 0) return;
+
+        // Compute normalized Y position (0 = top of grid = high notes, 1 = bottom of grid = low notes)
+        const rawRatio = (clientY - rect.top) / rect.height;
+        const yRatio = Math.max(0, Math.min(1, rawRatio));
+        const mappedRow = Math.max(
+          0,
+          Math.min(ROWS - 1, Math.floor(yRatio * ROWS))
+        );
+
+        currentThereminRow = mappedRow;
+        updateWurlitzerSliderVisuals(yRatio, mappedRow);
+
+        // Once the first click has awakened the audio engine, play the Wurlitzer lead
+        // smoothly as the user glides across scale degrees on the Y-axis
+        if (firstClickDone && !gameOver) {
+          const nowMs = performance.now();
+          if (
+            forceTrigger ||
+            (mappedRow !== lastTriggeredThereminRow && nowMs - lastThereminNoteTime > 65)
+          ) {
+            lastTriggeredThereminRow = mappedRow;
+            lastThereminNoteTime = nowMs;
+            const noteObj = C_MINOR_PENTATONIC[mappedRow];
+            if (noteObj) {
+              playWurlitzerNote(noteObj.freq, forceTrigger ? 0.95 : 0.62);
+            }
+          }
+        }
+      }
+
+      // Track vertical mouse movement across the Minesweeper game area & Wurlitzer slider
+      minesweeperWindowEl.addEventListener("mousemove", (e) => {
+        handleGameAreaMouseMove(e.clientY, false);
+      });
+
+      wurlitzerSliderEl.addEventListener("mousedown", (e) => {
+        if (!firstClickDone || gameOver) return;
+        handleGameAreaMouseMove(e.clientY, true);
+      });
+
+      function initGame() {
+        // Stop any running audio & animations
+        stopAllAudioImmediately();
+        if (discoAnimId) {
+          cancelAnimationFrame(discoAnimId);
+          discoAnimId = null;
+        }
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+
+        // Reset state back to Initial State (Plain white background, silent, classic UI)
+        firstClickDone = false;
+        discoMode = false;
+        gameOver = false;
+        gameWon = false;
+        flagsPlaced = 0;
+        revealedCount = 0;
+        elapsedSeconds = 0;
+        frozenBarX = 0;
+        lastTriggeredThereminRow = -1;
+
+        document.body.classList.remove("disco-active", "game-over");
+        timeBarEl.style.transform = "translate3d(0px, 0, 0)";
+        document.querySelectorAll(".rack-module.active-voice").forEach((el) => {
+          el.classList.remove("active-voice");
+        });
+
+        setSmileyState("classic");
+        updateCounters();
+        buildWurlitzerTicks();
+        updateWurlitzerSliderVisuals(0.45, 4);
+
+        // Build board data & DOM
+        board = [];
+        gridEl.innerHTML = "";
+
+        for (let r = 0; r < ROWS; r++) {
+          const rowArr = [];
+          for (let c = 0; c < COLS; c++) {
+            const cellEl = document.createElement("div");
+            cellEl.className = "cell";
+            cellEl.dataset.row = r;
+            cellEl.dataset.col = c;
+            cellEl.setAttribute("role", "gridcell");
+
+            cellEl.addEventListener("click", () => handleCellClick(r, c));
+            cellEl.addEventListener("contextmenu", (e) => {
+              e.preventDefault();
+              handleCellRightClick(r, c);
+            });
+
+            gridEl.appendChild(cellEl);
+            rowArr.push({
+              row: r,
+              col: c,
+              isMine: false,
+              revealed: false,
+              flagged: false,
+              neighborMines: 0,
+              el: cellEl,
+            });
+          }
+          board.push(rowArr);
+        }
+
+        // Place mines randomly (and if first click hits a mine, we relocate it so first click is a safe square)
+        placeInitialMines();
+      }
+
+      function placeInitialMines() {
+        let placed = 0;
+        while (placed < TOTAL_MINES) {
+          const r = Math.floor(Math.random() * ROWS);
+          const c = Math.floor(Math.random() * COLS);
+          if (!board[r][c].isMine) {
+            board[r][c].isMine = true;
+            placed++;
+          }
+        }
+        recalculateNeighborCounts();
+      }
+
+      function ensureSafeFirstClick(clickR, clickC) {
+        // Ensure clicked cell (and immediate neighbors if possible) has no mine so the first click is always a safe square
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const nr = clickR + dr;
+            const nc = clickC + dc;
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc].isMine) {
+              board[nr][nc].isMine = false;
+              // Move mine to a random spot outside the 3x3 zone
+              let moved = false;
+              while (!moved) {
+                const rr = Math.floor(Math.random() * ROWS);
+                const rc = Math.floor(Math.random() * COLS);
+                if (
+                  !board[rr][rc].isMine &&
+                  (Math.abs(rr - clickR) > 1 || Math.abs(rc - clickC) > 1)
+                ) {
+                  board[rr][rc].isMine = true;
+                  moved = true;
+                }
+              }
+            }
+          }
+        }
+        recalculateNeighborCounts();
+      }
+
+      function recalculateNeighborCounts() {
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (board[r][c].isMine) {
+              board[r][c].neighborMines = -1;
+              continue;
+            }
+            let count = 0;
+            for (let dr = -1; dr <= 1; dr++) {
+              for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue;
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc].isMine) {
+                  count++;
+                }
+              }
+            }
+            board[r][c].neighborMines = count;
+          }
+        }
+      }
+
+      // Trigger the massive CSS & Canvas First Click Shift!
+      function triggerFirstClickShift() {
+        firstClickDone = true;
+        discoMode = true;
+
+        document.body.classList.add("disco-active");
+        setSmileyState("disco");
+
+        // Start game second counter
+        timerInterval = setInterval(() => {
+          if (!gameOver && !gameWon) {
+            elapsedSeconds++;
+            updateCounters();
+          }
+        }, 1000);
+
+        // Start Disco Ball + Background Lasers
+        renderDiscoEffects();
+
+        // Start Web Audio API Step-Sequencer & Time Bar
+        startSequencer();
+      }
+
+      function handleCellRightClick(r, c) {
+        if (gameOver || gameWon) return;
+        const cell = board[r][c];
+        if (cell.revealed) return;
+
+        cell.flagged = !cell.flagged;
+        cell.el.classList.toggle("flagged", cell.flagged);
+        flagsPlaced += cell.flagged ? 1 : -1;
+        updateCounters();
+      }
+
+      function handleCellClick(r, c) {
+        if (gameOver || gameWon) return;
+        const cell = board[r][c];
+        if (cell.flagged || cell.revealed) return;
+
+        const rowYRatio = (r + 0.5) / ROWS;
+        updateWurlitzerSliderVisuals(rowYRatio, r);
+
+        if (!firstClickDone) {
+          ensureSafeFirstClick(r, c);
+          revealCell(r, c);
+          triggerFirstClickShift();
+          // Play the Wurlitzer lead note for the clicked square's vertical position
+          const noteObj = C_MINOR_PENTATONIC[r];
+          if (noteObj) {
+            lastTriggeredThereminRow = r;
+            lastThereminNoteTime = performance.now();
+            playWurlitzerNote(noteObj.freq, 0.95);
+          }
+          checkWinCondition();
+          return;
+        }
+
+        // Check if user clicked a mine
+        if (cell.isMine) {
+          triggerGameOver(cell);
+          return;
+        }
+
+        // Play the Wurlitzer lead note corresponding to the clicked square's Y-axis position
+        const noteObj = C_MINOR_PENTATONIC[r];
+        if (noteObj) {
+          lastTriggeredThereminRow = r;
+          lastThereminNoteTime = performance.now();
+          playWurlitzerNote(noteObj.freq, 0.95);
+        }
+
+        revealCell(r, c);
+        checkWinCondition();
+      }
+
+      function revealCell(startR, startC) {
+        const queue = [[startR, startC]];
+
+        while (queue.length > 0) {
+          const [r, c] = queue.shift();
+          const cell = board[r][c];
+
+          if (cell.revealed || cell.flagged || cell.isMine) continue;
+
+          cell.revealed = true;
+          revealedCount++;
+          cell.el.classList.add("revealed");
+
+          if (cell.neighborMines > 0) {
+            cell.el.textContent = cell.neighborMines;
+            cell.el.dataset.num = cell.neighborMines;
+          } else {
+            // Flood fill neighbors for 0-adjacent cells
+            for (let dr = -1; dr <= 1; dr++) {
+              for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue;
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                  const neighbor = board[nr][nc];
+                  if (!neighbor.revealed && !neighbor.flagged && !neighbor.isMine) {
+                    queue.push([nr, nc]);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      function triggerGameOver(clickedMineCell) {
+        gameOver = true;
+        document.body.classList.add("game-over");
+
+        // 1. Immediately halt the time bar & stop all Web Audio API oscillators for dead silence
+        stopAllAudioImmediately();
+        timeBarEl.style.transform = `translate3d(${frozenBarX}px, 0, 0)`;
+
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+
+        // Clear active step cell pulses
+        document.querySelectorAll(".cell.col-active-head, .cell.step-triggered").forEach((el) => {
+          el.classList.remove("col-active-head", "step-triggered");
+        });
+        document.querySelectorAll(".rack-module.active-voice").forEach((el) => {
+          el.classList.remove("active-voice");
+        });
+
+        // 2. Update smiley to dead state
+        setSmileyState("dead");
+
+        // 3. Reveal all remaining mines
+        clickedMineCell.el.classList.add("mine-hit");
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            const cell = board[r][c];
+            if (cell.isMine) {
+              cell.revealed = true;
+              cell.el.classList.remove("flagged");
+              cell.el.classList.add("revealed");
+              cell.el.style.color = discoMode ? "#ff0055" : "#000000";
+              cell.el.innerHTML = createMineSVG();
+            }
+          }
+        }
+      }
+
+      function checkWinCondition() {
+        const totalSafeCells = ROWS * COLS - TOTAL_MINES;
+        if (revealedCount >= totalSafeCells && !gameOver) {
+          gameWon = true;
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+          // Auto-flag remaining mines while keeping the sequencer playing
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+              const cell = board[r][c];
+              if (cell.isMine && !cell.flagged) {
+                cell.flagged = true;
+                cell.el.classList.add("flagged");
+              }
+            }
+          }
+          flagsPlaced = TOTAL_MINES;
+          updateCounters();
+        }
+      }
+
+      resetBtn.addEventListener("click", initGame);
+
+      // Initialize on load
+      initGame();
+    })();
+  </script>
+</body>
+</html>
